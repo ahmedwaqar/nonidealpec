@@ -1,0 +1,2001 @@
+  (* ================================================================== *)
+  (* File Name  : Formal Periodic Steady-State Analysis of Non-Ideal PC *)
+  (* Description: Definitions and Theorems                              *)
+  (*								        *)
+  (*                                                                    *)
+  (*          	    (c) Asad Ahmed				        *)
+  (*                                                                    *)        
+  (*                    Email:asad.ahmed@seecs.edu.pk                   *)
+  (*                    DATE: 03 June 2021                               *)
+  (*                                                                    *)
+  (*	                                                                *)
+  (*                System Analysis & Verification (SAVE) Lab           *)
+  (*           National University of Science and Technology (NUST),    *)
+  (*                    Islamabad, Pakistan.                            *)
+  (* ================================================================== *)
+  (* =======================A Short Note=============================== *)
+  (* This file contains Defintions and Theorems (Table 4)  in the paper.*)
+  (* Type "Definition\Theorem (no. in paper)" in the search bar to reach*)
+  (* the formalization in the document.                                 *)
+  (*                                                                    *)
+  (* ================================================================== *)
+#use "hol.ml";;
+needs "Multivariate/realanalysis.ml";;
+needs "Multivariate/derivatives.ml";;
+needs "Multivariate/cauchy.ml";;
+needs "Multivariate/topology.ml";;
+
+ (*-Definition 2.1-*)
+ let single_switch_status_h = 
+   new_definition `single_switch_status_h 
+    (t:real)  =
+       if  (( (t) < (&0)) ) 
+	then (&0) else if t = &0 then ((&1) / (&2) ) 
+       else (&1) 
+    `;;
+    
+ (*-Definition 2.2-*)
+ let switch_current = new_definition 
+	     `switch_current 
+	     (curr:(real^1->complex)) 
+	     (mode_lst:real list) (x : real^1)
+	      =
+    ((curr x) * (vsum (0..(LENGTH(mode_lst)-1)) (\n.  (Cx ( EL n mode_lst  ))) ))  `;;
+
+ (*-Definition 2.3-*)
+ let switch_volt_superposition = new_definition 
+	     `switch_volt_superposition
+	     (volt_lst:(real^1->real^2) list) 
+	     (mode_lst:(real) list)
+	     (x : real^1) =
+    (vsum (0..(LENGTH(mode_lst)-1)) (\n. ( ( EL n (volt_lst ) x)) * (Cx (( EL n (mode_lst ) ) 
+   ))))  `;;
+  
+ (*-Definition 2.4-*)
+ let kcl= new_definition 
+	     `kcl(cur_lst:(real^1->complex) list) (t : real^1)=
+			   ( (vsum (0..(LENGTH(cur_lst)-1)) (\n. EL n cur_lst t) ) = Cx(&0)) `;;
+			   
+ (*-Definition 2.5-*)
+ let kvl = new_definition 
+	     `kvl (vol_lst:(real^1->complex) list) (t : real^1)=
+			   ( (vsum (0..(LENGTH(vol_lst)-1)) (\n. EL n vol_lst t) ) = Cx(&0)) `;;
+
+ (*-Definition 2.6-*)
+ let inductor_current = new_definition
+	 `inductor_current (v:real^1->complex)(L:real)(Vo:complex) = 
+       (\t. Vo + (Cx(&1/L))* integral (interval[lift(&0),t]) v)`;;
+       
+(*-Definition 3.1-*)
+ let inductor_voltage = new_definition
+	 `inductor_voltage (L:real)(i:real^1->complex) =
+	
+ (*-Definition 2.7-*)
+ let capacitor_current = new_definition
+	 `capacitor_current (C:real)(v:real^1->complex) =
+				     (\t. Cx(C) * (vector_derivative v (at t)))`;;
+ (*-Definition 2.8-*)
+ let resistor_current= new_definition 
+		`resistor_current (R:real)(v:real^1->complex)=(\t. v t *(Cx(&1/R)))`;;
+  
+ (*-Definition 3.3-*)
+ let capacitor_voltage = new_definition
+	 `capacitor_voltage (i:real^1->complex)(C:real)(io:complex) = 
+      (\t. io + (Cx(&1/C))* integral (interval[lift(&0),t]) i)`;;
+
+
+ (*-Definition: Nth-order derivative-*)
+ let higher_vector_derivative_n = new_recursive_definition num_RECURSION
+      `(higher_vector_derivative_n 0 (f:real^1->complex) (x:real^1) = f x ) /\
+	(!n. higher_vector_derivative_n (SUC n) (f:real^1->complex) (x:real^1) =
+       (higher_vector_derivative_n n (\x. vector_derivative f (at x) ) (x)))`;;
+       
+ (*-Definition: Nth-order differentiability-*)
+ let differentiable_higher_derivative = new_recursive_definition num_RECURSION
+   `(differentiable_higher_derivative 0 (f:real^1->complex) (x:real^1) = (f differentiable at x)  )  /\
+      (!n. differentiable_higher_derivative  (SUC n) (f:real^1->complex) (x:real^1) =
+	((((\x:real^1. higher_vector_derivative_n (SUC n) f x)) differentiable at x) /\ (differentiable_higher_derivative  n f x) ))`;;
+
+ (*-Definition 2.9-*)
+ let ndiff_eq_lhs = new_definition 
+      `ndiff_eq_lhs (L:(real^1->real^1) list) (y:real^1->real^2) (x:real^1)=
+		    (vsum (0..(LENGTH(L)) - 1)  (\n. ( Cx (drop (( EL n L x)))) * (higher_vector_derivative_n n y x)))
+      `;;
+ (*-Definition x.1-*)
+
+   let n_order_differentiable_func_list =  new_recursive_definition list_RECURSION
+       `(n_order_differentiable_func_list [] n = T:bool) /\
+	(n_order_differentiable_func_list (CONS (f:real^1->real^2) t) n) = 
+       ((!m (x:real^1). (m < n) ==> ((\x. higher_vector_derivative_n m f x) differentiable (at x))) /\ (n_order_differentiable_func_list t n) ) `;;
+
+   let n_order_differentiable_func_list =  new_recursive_definition list_RECURSION
+       `(n_order_differentiable_func_list [] n = T:bool) /\
+	(n_order_differentiable_func_list (CONS (f:real^1->real^2) t) n) = 
+       ((!m (x:real^1). (m < n) ==> ((\x. higher_vector_derivative_n m f x) differentiable (at x))) /\ (n_order_differentiable_func_list t n) ) `;;
+
+
+ (*-Definition 2.10-*)
+ let ndiff_eq_rhs12 = new_definition 
+       `ndiff_eq_rhs12 (Lr:(real^1->real^1) list) (yr:(real^1->real^2) list) (x:real^1) =
+       (vsum (0..(LENGTH(Lr)) - 1) (\n:num. Cx(drop(EL n Lr x)) * ((EL n yr x))))` ;;
+       
+ (*-Definition 2.11-*)
+ let linear_sol_combin = new_recursive_definition list_RECURSION
+       `(linear_sol_combin (C:(real) list) [] (x:real^1) = Cx(&0)) /\ 
+	 linear_sol_combin C (CONS (h:real^1->real^2) t) (x:real^1) = 
+		     ((Cx (EL (LENGTH C - LENGTH (CONS h t)) C)) * (h x) + (linear_sol_combin C t x))`;;
+		     
+ (*-Definition 10.2-*)
+ let n_order_homo_eq_solution_list = new_recursive_definition list_RECURSION
+       `(n_order_homo_eq_solution_list [] (L:(real^1->real^1) list) (x:real^1) = T) /\
+	(n_order_homo_eq_solution_list (CONS (f:real^1->real^2) t) L (x:real^1)) = 
+	 ( (ndiff_eq_lhs L f x = Cx(&0)) /\
+	(n_order_homo_eq_solution_list t L x) ) `;;
+
+ (*-Definition 10.3-*)
+ let n_order_nonhomo_equ_solution = new_definition
+       `(n_order_nonhomo_equ_solution (L:(real^1->real^1) list) (L1:(real^1->real^1) list) (h:real^1->real^2) (y1:(real^1->real^2) list) x = 
+	 ( ( ndiff_eq_lhs L h x = ndiff_eq_rhs12 L1 y1 x))) `;;
+	 
+ (*-Definition 10.4-*)
+ let cexp_list = new_recursive_definition list_RECURSION
+      `(cexp_list [] = [] ) /\
+	(cexp_list  (CONS (s:real^2) t )) =
+       (CONS  (\x:real^1. cexp (s * Cx(drop(x)))  ) (cexp_list t))`;;
+ (*-Definition 10.5-*)
+ let const_list = new_recursive_definition list_RECURSION
+       `(const_list [] = []) /\ 
+	((const_list (CONS (c:real^1) t)) = (CONS (\x:real^1. c) (const_list t) ))`;;
+	
+ (*-Definition 10.6-*)
+ let sum_elements_new = new_definition 
+      `sum_elements_new (L:(real^1->real^1) list) (s:real^2) (x:real^1)=
+		    ((vsum (0..(LENGTH(L) - 1))  (\n. ( Cx (drop (( EL n L x)))) * 
+		    (s pow n))) = Cx(&0))
+      `;;
+      
+ (*-Definition 10.7-*)
+ let sum_elements_all_new = new_recursive_definition list_RECURSION
+      `(sum_elements_all_new [] (L:(real^1->real^1) list) (x:real^1)= T) /\
+	   (sum_elements_all_new (CONS (h:real^2) t) (L:(real^1->real^1) list) x) =
+	    ((sum_elements_new L h x) /\ (sum_elements_all_new t L x) )
+      `;;
+
+ (*-Definition 3.12-*)
+ let steady_state = new_recursive_definition num_RECURSION
+   ` 
+   steady_state(0:num) (f:real^1->complex) (t:real^1) = 
+  ( higher_vector_derivative_n (0:num) (f:real^1->real^2) (t) = 
+  higher_vector_derivative_n 0 (f:real^1->real^2) (t) ) /\ 
+  ( steady_state (SUC n) (f:real^1->complex) t  = (
+  (higher_vector_derivative_n (SUC n) (f:real^1->real^2) (t) = (
+  higher_vector_derivative_n (SUC n) (f:real^1->real^2) (t)) )))`;;
+
+
+
+(*-------------------COMPLEX_EQ_RDIV_EQ----------------------------------------------*)
+
+g `!x y z. (~(z = Cx(&0)) ) ==> ( (x = y / z )<=> (x * z =  y) )`;;
+ 
+e (REPEAT GEN_TAC);;
+e (DISCH_TAC);;
+e (EQ_TAC);;
+e (DISCH_TAC);;
+e (ONCE_REWRITE_TAC [SIMPLE_COMPLEX_ARITH `((x * z) = y) = ((x *z) = (y * Cx (&1)))`]);;
+e (SUBGOAL_THEN `Cx (&1) = (z / z)` ASSUME_TAC);;
+       e (REWRITE_TAC [complex_div]);;
+       e (ONCE_REWRITE_TAC [EQ_SYM_EQ]);;
+       e (MATCH_MP_TAC COMPLEX_MUL_RINV);;
+       e (ASM_REWRITE_TAC []);;
+e (UNDISCH_TAC `Cx (&1) = z / z`);;
+e (SIMP_TAC []);;
+e (DISCH_TAC);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (REWRITE_TAC [complex_div]);;
+e (ONCE_REWRITE_TAC [GSYM COMPLEX_MUL_ASSOC]);;
+e (SIMPLE_COMPLEX_ARITH_TAC);;
+
+e (DISCH_TAC);;
+
+e (ONCE_REWRITE_TAC [SIMPLE_COMPLEX_ARITH `( (x = y / z ) =  (x * Cx (&1) = y / z))`]);;
+e (SUBGOAL_THEN `Cx (&1) = (z / z)` ASSUME_TAC);;
+       e (REWRITE_TAC [complex_div]);;
+       e (ONCE_REWRITE_TAC [EQ_SYM_EQ]);;
+       e (MATCH_MP_TAC COMPLEX_MUL_RINV);;
+       e (ASM_REWRITE_TAC []);;
+e (UNDISCH_TAC `Cx (&1) = z / z`);;
+e (SIMP_TAC []);;
+e (DISCH_TAC);;
+e (REWRITE_TAC [complex_div]);;
+
+
+e (ONCE_REWRITE_TAC [COMPLEX_MUL_ASSOC]);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (SIMPLE_COMPLEX_ARITH_TAC);;
+
+let  COMPLEX_EQ_RDIV_EQ = top_thm();;
+
+
+(*-------------------COMPLEX_EQ_LDIV_EQ--------------------------*)
+
+g `!x y z. (~(z = Cx(&0)) ) ==> ( (x / z = y )<=> (x = z * y) )`;;
+ 
+e (REPEAT GEN_TAC);;
+e (DISCH_TAC);;
+e (EQ_TAC);;
+e (DISCH_TAC);;
+e (ONCE_REWRITE_TAC [SIMPLE_COMPLEX_ARITH `((x = z * y) =((x * Cx(&1)) = z * y) )`]);;
+e (SUBGOAL_THEN `Cx (&1) = (z / z)` ASSUME_TAC);;
+       e (REWRITE_TAC [complex_div]);;
+       e (ONCE_REWRITE_TAC [EQ_SYM_EQ]);;
+       e (MATCH_MP_TAC COMPLEX_MUL_RINV);;
+       e (ASM_REWRITE_TAC []);;
+e (UNDISCH_TAC `Cx (&1) = z / z`);;
+e (SIMP_TAC []);;
+e (DISCH_TAC);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (REWRITE_TAC [complex_div]);;
+e (ONCE_REWRITE_TAC [GSYM COMPLEX_MUL_ASSOC]);;
+
+e (SUBGOAL_THEN `x * (z:complex) * inv z = (x * inv z)* z` ASSUME_TAC);;
+e (ONCE_REWRITE_TAC [GSYM COMPLEX_MUL_ASSOC]);;
+e (SIMPLE_COMPLEX_ARITH_TAC);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (REWRITE_TAC [GSYM complex_div]);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (SIMPLE_COMPLEX_ARITH_TAC);;
+
+e (DISCH_TAC);;
+e (REWRITE_TAC [complex_div]);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (ONCE_REWRITE_TAC [GSYM COMPLEX_MUL_ASSOC]);;
+e (SUBGOAL_THEN `(z * (y:complex) * inv z)=( (z * inv z )* y )` ASSUME_TAC);;
+ 
+e (ONCE_REWRITE_TAC [GSYM COMPLEX_MUL_ASSOC]);;
+
+e (SIMPLE_COMPLEX_ARITH_TAC);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (SUBGOAL_THEN `(z * inv z = Cx (&1))` ASSUME_TAC);;
+  e (UNDISCH_TAC `~(z = Cx (&0))`);;
+  e (ONCE_REWRITE_TAC [COMPLEX_MUL_RINV]);;
+
+e (ONCE_ASM_REWRITE_TAC []);;
+e (SIMPLE_COMPLEX_ARITH_TAC);;
+
+let COMPLEX_EQ_LDIV_EQ = top_thm();;
+
+g `!(f:real^1->complex) (g:complex->complex) (f':complex) (g':complex) x s .
+      (f has_vector_derivative f') (at x within s) /\
+       (g has_complex_derivative g') (at (f x) within IMAGE f s)
+         ==> ((g o f) has_vector_derivative (f' * g')) (at x within s)`;;
+
+e (REPEAT GEN_TAC THEN REWRITE_TAC[has_vector_derivative; has_complex_derivative] );;
+e (DISCH_THEN(MP_TAC o MATCH_MP DIFF_CHAIN_WITHIN));;
+e (REWRITE_TAC[o_DEF ; COMPLEX_CMUL ; COMPLEX_MUL_AC]);;
+
+let  VECTOR_COMPLEX_DIFF_CHAIN_WITHIN = top_thm();;
+	(********************************************)
+
+g `!(f:real^1->complex) (g:complex->complex) (f':complex) (g':complex) x .
+         (f has_vector_derivative f') (at x) /\
+         (g has_complex_derivative g') (at (f x))
+         ==> ((g o f) has_vector_derivative (f' * g')) (at x)`;;
+
+e (REPEAT GEN_TAC THEN REWRITE_TAC[has_vector_derivative; has_complex_derivative] );;
+e (DISCH_THEN(MP_TAC o MATCH_MP DIFF_CHAIN_AT));;
+e (REWRITE_TAC[o_DEF ; COMPLEX_CMUL ; COMPLEX_MUL_AC]);;
+
+let  VECTOR_COMPLEX_DIFF_CHAIN_AT = top_thm();;
+
+
+(*-----------------CEXP_DERIV_AT--------------------------*)
+
+
+g `!(f:real^1->real^2) (m:real^2) (x:real^1). 
+  ((f has_vector_derivative m) (at x)) ==> 
+      ((\x. (cexp (f x))) has_vector_derivative m * cexp ((f x))) (at x) `;;
+
+e (REPEAT GEN_TAC THEN REPEAT STRIP_TAC);;
+e (ONCE_REWRITE_TAC [GSYM o_DEF]);;
+e (MATCH_MP_TAC VECTOR_COMPLEX_DIFF_CHAIN_AT);;
+e (ASM_SIMP_TAC []);;
+e (ASM_SIMP_TAC [HAS_COMPLEX_DERIVATIVE_CEXP]);;
+
+let  CEXP_DERIV_AT = top_thm();;
+
+(*-----------------CX_CMUL--------------------------*)
+
+g `!c x. c % Cx(x) = Cx( c * x)` ;;
+
+e (REPEAT GEN_TAC);;
+e (REWRITE_TAC [ COMPLEX_CMUL ]);;
+e (SIMPLE_COMPLEX_ARITH_TAC);;
+let CX_CMUL = top_thm();;
+
+(*--------------------HAS_CX_FRECHET_DERIVATIVE_AT-----------------------*)
+
+
+g `(f has_real_derivative f') (atreal x) <=>
+        ((Cx o f o drop) has_derivative (\x . f' % Cx (drop x ) ))
+        (at (lift x) )` ;;
+e (REWRITE_TAC[has_derivative_at; HAS_REAL_DERIVATIVE_ATREAL] );;
+e (REWRITE_TAC[o_THM; LIFT_DROP; LIM_AT;  REALLIM_ATREAL] );;
+e (SUBGOAL_THEN ` linear (\x. f' % Cx (drop x))` ASSUME_TAC );;
+e (MATCH_MP_TAC LINEAR_COMPOSE_CMUL);;
+e (SIMP_TAC[linear]);;
+e (SIMP_TAC[ DROP_ADD ; CX_ADD]);;
+e (SIMP_TAC[ DROP_CMUL ; CX_CMUL]);;
+e (ASM_SIMP_TAC[]);;
+e (REWRITE_TAC [IMP_CONJ]);;
+e (REWRITE_TAC[FORALL_LIFT]);;
+e (REWRITE_TAC[NORM_ARITH `dist(x,vec 0) = norm x`]);;
+e (REWRITE_TAC[GSYM LIFT_SUB]);;
+e (REWRITE_TAC[NORM_LIFT]);;
+
+e (REWRITE_TAC[DIST_LIFT]);;
+e (REWRITE_TAC[LIFT_DROP]);;
+e (REWRITE_TAC[ CX_CMUL]);;
+e (REWRITE_TAC [GSYM CX_ADD]);;
+e (REWRITE_TAC [GSYM CX_SUB]);;
+e (REWRITE_TAC[ CX_CMUL]);;
+e (REWRITE_TAC [COMPLEX_NORM_CX ]);;
+e (SIMP_TAC[REAL_FIELD `&0 < abs(y - x)
+    ==> fy - (fx + f' * (y - x)) = (y - x) * ((fy - fx) / (y - x) - f')`]);;
+e (REWRITE_TAC[REAL_ABS_MUL; REAL_MUL_ASSOC; REAL_ABS_INV; REAL_ABS_ABS] THEN
+     SIMP_TAC[REAL_LT_IMP_NZ; REAL_MUL_LINV; REAL_MUL_LID]);;
+let HAS_CX_FRECHET_DERIVATIVE_AT = top_thm();;
+
+(*------------HAS_CX_VECTOR_DERIVATIVE_AT----------------------*)
+
+g `(f has_real_derivative f') (atreal x ) <=>
+        ((Cx o f o drop) has_vector_derivative (Cx f'))(at (lift x))` ;;
+
+e (REWRITE_TAC[has_vector_derivative; HAS_CX_FRECHET_DERIVATIVE_AT]);;
+e (AP_THM_TAC THEN AP_TERM_TAC);;
+e (REWRITE_TAC[FUN_EQ_THM ; CX_CMUL ; REAL_MUL_SYM]);;
+
+let HAS_CX_VECTOR_DERIVATIVE_AT = top_thm();;
+
+
+(*----------HAS_VECTOR_DERIVATIVE_TRANSFORM_SWITCH_H-----*)
+
+g `! (f:real^1->complex) (g:real^1->complex) (t:real^1) (t_on:real). 
+   (&0 < drop t) /\ ((drop t) < t_on) /\ (!x:real^1. (&0 <= (drop x)) /\ ((drop x) < t_on)  ==> f x = g x) /\
+   (f has_vector_derivative (vector_derivative f (at t))) (at t) ==>
+   (g has_vector_derivative (vector_derivative f (at t))) (at t) ` ;;
+
+e (REWRITE_TAC [ has_vector_derivative]);;
+e (REPEAT STRIP_TAC);;
+e (MATCH_MP_TAC HAS_DERIVATIVE_TRANSFORM_AT );;
+e (EXISTS_TAC `f:real^1->complex`);;
+e (ASM_SIMP_TAC [dist]);;
+e (REWRITE_TAC [NORM_1]);; 
+
+e (REWRITE_TAC [ABS_DROP ; GSYM REAL_BOUNDS_LT; DROP_SUB]);; 
+
+e (EXISTS_TAC `min ((drop t) / &2) (((t_on - (drop t)) / &2))`);;
+e (ONCE_REWRITE_TAC [REAL_LT_LNEG]);;
+e (REWRITE_TAC [REAL_ARITH `(&0 < (a + b)) = (--b < a)`]);;
+e (ONCE_REWRITE_TAC [REAL_LT_MIN]);;
+e (REWRITE_TAC [REAL_ARITH `((&0 < (a / &2)) /\ (&0 < ((b - c) / &2))) = 
+ ((&0 < (a)) /\ (c < ((b ))))`]);;
+e (ASM_SIMP_TAC []);;
+e (REWRITE_TAC [REAL_ARITH `((--(a - b) < ((b) / &2)) ) = 
+ ((b / &2) < a )`]);;
+e (REWRITE_TAC [REAL_ARITH `((((a:real) - b) < ((b) / (&2))) ) = 
+ (a < ((&3) *( (b) / (&2))))`]);;
+e (REWRITE_TAC [REAL_ARITH `((--((a:real) - b) < ((c - (b)) / (&2))) ) = 
+ ((((&3) *( (b) / (&2))) - (c / (&2))) < a)`]);;
+e (REWRITE_TAC [REAL_ARITH `((((a:real) - b) < ((c - (b)) / (&2))) ) = 
+ (a < ((( (b) / (&2))) + ((c) / (&2))))`]);;
+e (REPEAT STRIP_TAC);;
+e (UNDISCH_TAC `!(x:real^1). &0 <= drop (x:real^1) /\
+                   drop (x:real^1) < (t_on)
+                   ==> (f:real^1->real^2) (x:real^1) =
+                       (g:real^1->real^2) (x:real^1)  `);;
+e (DISCH_THEN (MP_TAC o SPEC `x':real^1`));;
+e (DISCH_THEN MATCH_MP_TAC);;
+e (CONJ_TAC);;
+e (MATCH_MP_TAC REAL_LE_TRANS);;
+e (EXISTS_TAC `(drop t) / (&2)`);;
+e (ASM_SIMP_TAC [REAL_LE_LT]);;
+e (SIMP_TAC [REAL_ARITH ` (&0 < ((drop t) / &2)) = ( &0 < (drop t))`]);;
+e (ASM_SIMP_TAC []);;
+e (MATCH_MP_TAC REAL_LT_TRANS);;
+e (EXISTS_TAC `drop t / &2 + t_on / &2`);;
+e (ASM_SIMP_TAC [REAL_LE_LT]);;
+e (SIMP_TAC [REAL_ARITH ` (((a / (&2)) + (c / (&2))) < (c)) = ( a < (c))`]);;
+e (ASM_SIMP_TAC []);;
+
+let HAS_VECTOR_DERIVATIVE_TRANSFORM_SWITCH_H = top_thm ();;
+
+ 
+    (*-----------------NORDER_HIGHER_VECTOR_DERIVATIVE_0 --------------------------*)
+
+
+   g `!(x:real^1) (n:num) . ((higher_vector_derivative_n n (\x. Cx(&0)) x ) = Cx(&0))`;;
+   e (GEN_TAC);;
+   e (INDUCT_TAC);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (SUBGOAL_THEN `(!x. vector_derivative (\x. Cx (&0)) (at x)  = Cx(&0))`ASSUME_TAC);;
+	   e (GEN_TAC);;
+	   e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+	   e (SIMP_TAC [GSYM COMPLEX_VEC_0]);;
+	   e (SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+
+	   e (ASM_SIMP_TAC []);;
+
+   let NORDER_HIGHER_VECTOR_DERIVATIVE_0 = top_thm ();;
+
+   (*-----------------VECTOR_DERIVATIVE_CEXP_ARGUMENT_MUL --------------------------*)
+
+   g `!(s:real^2) (t:real^1). vector_derivative (\t. cexp (s * Cx (drop (t)) )) (at t) 
+		  = s * cexp (s * Cx (drop(t)))  `;;
+     e (REPEAT STRIP_TAC);;
+     e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+     e (MATCH_MP_TAC CEXP_DERIV_AT);;
+     e ( MP_TAC(ISPECL
+	   [`( * ):complex->complex->complex`; `(\t:real^1. (s:complex) )`;
+	   `(\t. Cx (drop (t)))`; `Cx(&0)`; `(Cx(&1))`] 
+	   HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+     e (ASM_SIMP_TAC [GSYM COMPLEX_VEC_0]);;
+     e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST; BILINEAR_COMPLEX_MUL]);;
+   e (SUBGOAL_THEN `((\t. Cx (drop t))) = 
+	   Cx o (\t . t) o drop` ASSUME_TAC);;
+	   e (SIMP_TAC [o_DEF]);;
+	   e (ONCE_ASM_REWRITE_TAC []);;
+
+      e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+      e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+      e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+      e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+      e (REWRITE_TAC[COMPLEX_RING `(a * Cx (&1) + Cx (&0) * Cx (drop x)) = ((a))`]);;
+      e (ASM_SIMP_TAC []);;
+
+   let VECTOR_DERIVATIVE_CEXP_ARGUMENT_MUL = top_thm ();;
+(*-----------------------------------------------------*)
+ g `!(f:real^1->real^2) (m:real^2) (x:real^1). ((f has_vector_derivative m) (at x)) ==> 
+	 (vector_derivative (\x. (cexp (f x))) (at x) =  m * cexp ((f x)))`;;
+
+     e (REPEAT GEN_TAC THEN STRIP_TAC);;
+     e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+     e (ASM_SIMP_TAC [CEXP_DERIV_AT]);;
+
+   let VECTOR_DERIVATIVE_CEXP_COMPLEX_MUL = top_thm ();;
+   (*-----------------VECTOR_DERIVATIVE_CMUL--------------------------*)
+
+   g `!f:real^1->complex c x. f differentiable (at x)
+       ==> vector_derivative (\x. c % f x) (at x) =  c % (vector_derivative f  (at x))  `;;
+
+   e (REPEAT STRIP_TAC);;
+   e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+   e (MATCH_MP_TAC HAS_VECTOR_DERIVATIVE_CMUL);;
+   e (REWRITE_TAC [GSYM VECTOR_DERIVATIVE_WORKS]);;
+   e (ASM_SIMP_TAC []);;
+
+   let VECTOR_DERIVATIVE_CMUL = top_thm ();;
+   (*-----------------VECTOR_DERIVATIVE_ADD--------------------------*)
+
+   g `!f:real^1->complex g x. f differentiable (at x) /\ g differentiable (at x)
+       ==> vector_derivative (\x. f x + g x) (at x) = (vector_derivative f  (at x))  + (vector_derivative g (at x))`;;
+
+   e (REPEAT STRIP_TAC);;
+   e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+   e (MATCH_MP_TAC HAS_VECTOR_DERIVATIVE_ADD);;
+   e (REWRITE_TAC [GSYM VECTOR_DERIVATIVE_WORKS]);;
+   e (ASM_SIMP_TAC []);;
+
+   let VECTOR_DERIVATIVE_ADD = top_thm ();;
+
+
+
+   (*----------------------------------------------------------------*)
+   (*         Linearity property of 1st order derivative             *)
+   (*----------------------------------------------------------------*)
+   
+   g `!(f:real^1->real^2) (g:real^1->real^2) (x:real^1) (a:real) (b:real). 
+    ((f differentiable (at x)) /\ (g differentiable (at x))) ==> 
+   (vector_derivative (\x. Cx (a) * (f x) + Cx (b) * (g x)) (at x))=(Cx(a)*(vector_derivative (\x. f x) (at x)) + Cx(b)*(vector_derivative (\x. g x) (at x))) `;;
+
+   e (REPEAT STRIP_TAC);;
+   e (SIMP_TAC [GSYM COMPLEX_CMUL]);;
+   e (SUBGOAL_THEN ` a % vector_derivative (\x. (f:real^1->real^2) x) (at x) = (vector_derivative (\x. a % f x) (at x))` ASSUME_TAC);;
+   e (ONCE_REWRITE_TAC [EQ_SYM_EQ]);;
+   e (SIMP_TAC [ETA_AX]);;
+   e (MATCH_MP_TAC VECTOR_DERIVATIVE_CMUL);;
+   e (ASM_SIMP_TAC []);;
+   e (UNDISCH_TAC `(a:real) %
+	 vector_derivative (\(x:real^1). (f:real^1->real^2) (x:real^1))
+	 (at (x:real^1)) =
+	 vector_derivative
+	 (\(x:real^1). (a:real) % (f:real^1->real^2) (x:real^1))
+	 (at (x:real^1))` THEN ASM_SIMP_TAC []);;
+
+   e (SUBGOAL_THEN ` ((b:real) %
+	vector_derivative (\(x:real^1). (g:real^1->real^2) (x:real^1))
+	(at (x:real^1))) =  (
+	vector_derivative (\(x:real^1). (b:real) % (g:real^1->real^2) (x:real^1))
+	(at (x:real^1)) ) ` ASSUME_TAC);;
+   e (ONCE_REWRITE_TAC [EQ_SYM_EQ]);;
+   e (SIMP_TAC [ETA_AX]);;
+   e (MATCH_MP_TAC VECTOR_DERIVATIVE_CMUL);;
+   e (ASM_SIMP_TAC []);;
+
+   e (UNDISCH_TAC `(b:real) %
+	 vector_derivative (\(x:real^1). (g:real^1->real^2) (x:real^1))
+	 (at (x:real^1)) =
+	 vector_derivative
+	 (\(x:real^1). (b:real) % (g:real^1->real^2) (x:real^1))
+	 (at (x:real^1))` THEN SIMP_TAC []);;
+
+   e (REPEAT DISCH_TAC);;
+   e (MATCH_MP_TAC VECTOR_DERIVATIVE_ADD);
+   e (STRIP_TAC);;
+   e (MATCH_MP_TAC DIFFERENTIABLE_CMUL);;
+   e (ASM_SIMP_TAC []);;
+   e (MATCH_MP_TAC DIFFERENTIABLE_CMUL);;
+   e (ASM_SIMP_TAC []);;
+
+   let DERIV_LINEARITY_1 = top_thm();;
+
+
+   (*----------------------------------------------------------------*)
+   (*         Linearity property of nth order derivative             *)
+   (*----------------------------------------------------------------*)
+
+   g `!(n:num) (f:real^1->real^2) (g:real^1->real^2) (x:real^1) .  (!(m:num)  x. m <= n ==> (\x. higher_vector_derivative_n m f x ) differentiable (at x) )/\ 
+	       (!m  x. m <= n ==> (\x. higher_vector_derivative_n m g x)  differentiable (at x))   ==>
+	      (higher_vector_derivative_n n (\x. (Cx(a) * f x + Cx(b) * g x)) x = 
+	      Cx(a) * higher_vector_derivative_n n (\x. (f x)) x + Cx(b) * higher_vector_derivative_n n (\x. (g x)) x)`;;
+
+   e (INDUCT_TAC);;
+   e (ONCE_REWRITE_TAC [higher_vector_derivative_n]);;
+   e (REPEAT STRIP_TAC);;
+   e (ASM_MESON_TAC []);;
+
+   e (REPEAT GEN_TAC THEN REPEAT STRIP_TAC);;
+   e (ONCE_REWRITE_TAC [higher_vector_derivative_n]);;
+
+   e (SUBGOAL_THEN `(!x. (vector_derivative (\x. Cx(a) * (f x) + Cx(b) * (g x)) (at x)) = (Cx(a) * vector_derivative (\x. f x) (at x) + Cx (b) * vector_derivative (\x. g x) (at x))) ` ASSUME_TAC);;
+
+     e (GEN_TAC);;
+     e (MATCH_MP_TAC DERIV_LINEARITY_1);;
+     e (STRIP_TAC);;
+
+     e (UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x` THEN DISCH_THEN (MP_TAC o SPEC `0:num`));;
+
+     e (ONCE_REWRITE_TAC [higher_vector_derivative_n]);;
+     e (ONCE_REWRITE_TAC [ETA_AX]);;
+     e (SUBGOAL_THEN `SUC n = n + 1` ASSUME_TAC);;
+       e (ARITH_TAC);;
+     e (ASM_REWRITE_TAC []);;
+     e (SUBGOAL_THEN `(0 <= n + 1) = T`ASSUME_TAC);;
+       e (ARITH_TAC);;
+     e (ASM_REWRITE_TAC []);;
+   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+   e (DISCH_TAC);;
+     e (ASM_REWRITE_TAC []);;
+
+    e (UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m g x) differentiable at x` THEN DISCH_THEN (MP_TAC o SPEC `0:num`));;
+   e (ONCE_REWRITE_TAC [higher_vector_derivative_n]);;
+     e (ONCE_REWRITE_TAC [ETA_AX]);;
+     e (SUBGOAL_THEN `SUC n = n + 1` ASSUME_TAC);;
+       e (ARITH_TAC);;
+     e (ASM_REWRITE_TAC []);;
+     e (SUBGOAL_THEN `(0 <= n + 1) = T`ASSUME_TAC);;
+       e (ARITH_TAC);;
+     e (ASM_REWRITE_TAC []);;
+   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+   e (ASM_SIMP_TAC []);;
+
+   (**e (ONCE_REWRITE_TAC [higher_vector_derivative_n]);;***)
+   (**e (POP_ASSUM (K ALL_TAC));;***)
+
+   e (ASM_REWRITE_TAC []);;
+   e (POP_ASSUM (K ALL_TAC));;
+
+   e (UNDISCH_TAC `!f g x.
+	     (!m x.
+		  m <= n
+		  ==> (\x. higher_vector_derivative_n m f x) differentiable at x) /\
+	     (!m x.
+		  m <= n
+		  ==> (\x. higher_vector_derivative_n m g x) differentiable at x)
+	     ==> higher_vector_derivative_n n (\x. Cx a * f x + Cx b * g x) x =
+		 Cx a * higher_vector_derivative_n n (\x. f x) x +
+		 Cx b * higher_vector_derivative_n n (\x. g x) x`);;
+   e (DISCH_THEN (MP_TAC o SPEC `(\x. (vector_derivative (\x. f:real^1->real^2 x) (at x) ) )`));;
+   e (DISCH_THEN (MP_TAC o SPEC `(\x. (vector_derivative (\x. g:real^1->real^2 x) (at x) ) )`));;
+
+   e (DISCH_TAC);;
+
+     e (SUBGOAL_THEN `!m x. (
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x) =
+	     (
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m (\x. vector_derivative f (at x)) x) differentiable at x)` ASSUME_TAC);;
+	     e (ASM_SIMP_TAC []);;
+	     e (REPEAT GEN_TAC THEN REPEAT STRIP_TAC);;
+	     e (UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x` THEN DISCH_THEN (MP_TAC o SPEC `SUC m`));;
+	     e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+	       e (SUBGOAL_THEN `(SUC m <= SUC n) = (m <= n) ` ASSUME_TAC);;
+		 e (ARITH_TAC);;
+		 e (ASM_SIMP_TAC []);;
+		 e (ASM_SIMP_TAC [higher_vector_derivative_n]);;
+
+     e (SUBGOAL_THEN `!m x. (
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m g x) differentiable at x) =
+	     (
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m (\x. vector_derivative g (at x)) x) differentiable at x)` ASSUME_TAC);;
+	     e (ASM_SIMP_TAC []);;
+	     e (REPEAT GEN_TAC THEN REPEAT STRIP_TAC);;
+	     e (UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m g x) differentiable at x` THEN DISCH_THEN (MP_TAC o SPEC `SUC m`));;
+	     e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+     e (SUBGOAL_THEN `(SUC m <= SUC n) = (m <= n) ` ASSUME_TAC);;
+	       		     e (ARITH_TAC);;
+	     		     e (ASM_SIMP_TAC []);;
+	     		     e (ASM_SIMP_TAC [higher_vector_derivative_n]);;
+     e (DISCH_TAC);;
+
+     e (UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x` THEN UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x <=>
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. vector_derivative f (at x))
+		      x) differentiable
+		 at x` THEN SIMP_TAC []);;
+
+      e (UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m g x) differentiable at x` THEN UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m g x) differentiable at x <=>
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. vector_derivative g (at x))
+		      x) differentiable
+		 at x` THEN SIMP_TAC []);;
+
+
+      e (REPEAT DISCH_TAC);;
+
+      e (UNDISCH_TAC `!x. (!m x.
+		  m <= n
+		  ==> (\x. higher_vector_derivative_n m
+			   (\x. vector_derivative ((\x. f) x) (at x))
+			   x) differentiable
+		      at x) /\
+	     (!m x.
+		  m <= n
+		  ==> (\x. higher_vector_derivative_n m
+			   (\x. vector_derivative ((\x. g) x) (at x))
+			   x) differentiable
+		      at x)
+	     ==> higher_vector_derivative_n n
+		 (\x. Cx a * (\x. vector_derivative ((\x. f) x) (at x)) x +
+		      Cx b * (\x. vector_derivative ((\x. g) x) (at x)) x)
+		 x =
+		 Cx a *
+		 higher_vector_derivative_n n
+		 (\x. (\x. vector_derivative ((\x. f) x) (at x)) x)
+		 x +
+		 Cx b *
+		 higher_vector_derivative_n n
+		 (\x. (\x. vector_derivative ((\x. g) x) (at x)) x)
+		 x` );;
+
+   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+   e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC []);;
+
+   e (UNDISCH_TAC `!m x.
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. vector_derivative g (at x))
+		      x) differentiable
+		 at x` THEN ASM_SIMP_TAC []);;
+
+    e (REPEAT DISCH_TAC);;
+    e (ASM_SIMP_TAC [ETA_AX]);;
+    let N_DERIV_LINEARITY_1 = top_thm();;
+
+
+   (*----------------------------------------------------------------*)
+   (*  Linearity property of nth order derivative for one function   *)
+   (*----------------------------------------------------------------*)
+
+   g `!(n:num) (f:real^1->real^2) (a:real) (x:real^1) .
+   (!m x. m <= n ==> (\x. higher_vector_derivative_n m f x ) differentiable (at x) ) ==>
+	(higher_vector_derivative_n n (\x. (Cx(a) * f x)) x = 
+		      Cx(a) * higher_vector_derivative_n n (\x. (f x)) x) `;;
+
+
+   e (INDUCT_TAC);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (REPEAT STRIP_TAC);;
+     e (SUBGOAL_THEN `!x. (vector_derivative (\x:real^1. Cx (a) * ((f:real^1->real^2) x)) (at x)) 
+		     = Cx (a) * (vector_derivative (\x. f x) (at x))` ASSUME_TAC);;
+	   e (GEN_TAC);;
+	   e (SIMP_TAC [GSYM COMPLEX_CMUL]);;
+	   e (SIMP_TAC [ETA_AX]);;
+	   e (MATCH_MP_TAC VECTOR_DERIVATIVE_CMUL);;
+	   e (POP_ASSUM MP_TAC THEN DISCH_THEN (MP_TAC o SPEC `0:num`));;	
+	   e (SIMP_TAC [higher_vector_derivative_n]);;
+	   e (STRIP_TAC);;
+	   e (SUBGOAL_THEN `0 <= SUC n` ASSUME_TAC);;
+		 e (ARITH_TAC);;
+
+	   e (UNDISCH_TAC `!(x:real^1). 0 <= SUC (n:num)
+	     ==> (\(x:real^1). (f:real^1->real^2) (x:real^1)) differentiable
+			  at (x:real^1)` THEN ASM_SIMP_TAC [ETA_AX]);;
+
+     e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [ETA_AX]);;
+     e (DISCH_TAC THEN POP_ASSUM (K ALL_TAC));;
+
+     e (POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN 
+       DISCH_THEN (MP_TAC o SPEC `((\x. (vector_derivative (\x. f:real^1->real^2 x) (at x) ) ))`) );;
+     e (REPEAT DISCH_TAC);;
+
+     e (SUBGOAL_THEN `!m x. 
+     (m <= SUC n
+     ==> (\x. higher_vector_derivative_n m f x) differentiable at x) =
+	     (m <= n
+	     ==> (\x. higher_vector_derivative_n m (\x. vector_derivative f (at x)) x) differentiable at x)` ASSUME_TAC);;
+	   e (ASM_SIMP_TAC []);;
+	   e (REPEAT GEN_TAC THEN REPEAT STRIP_TAC);;
+	   e (UNDISCH_TAC `!(m:num) (x:real^1).
+	     (m:num) <= SUC (n:num)
+	     ==> (\(x:real^1). higher_vector_derivative_n (m:num)
+			       (f:real^1->real^2)
+			       (x:real^1)) differentiable
+		 at (x:real^1)`) ;;
+	   e (DISCH_THEN (MP_TAC o SPEC `SUC m`));;
+	   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+
+	     e (SUBGOAL_THEN `(SUC m <= SUC n) = (m <= n) ` ASSUME_TAC);;
+		   e (ARITH_TAC);;
+		   e (ASM_SIMP_TAC []);;
+     e (ASM_SIMP_TAC [higher_vector_derivative_n]);;
+     e (UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x` THEN UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x <=>
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. vector_derivative f (at x))
+		      x) differentiable
+		 at x` THEN ASM_SIMP_TAC []);;
+     e (REPEAT DISCH_TAC);;
+     e (UNDISCH_TAC `!a x.
+	     (!m x.
+		  m <= n
+		  ==> (\x. higher_vector_derivative_n m
+			   (\x. vector_derivative ((\x. f) x) (at x))
+			   x) differentiable
+		      at x)
+	     ==> higher_vector_derivative_n n
+		 (\x. Cx a * (\x. vector_derivative ((\x. f) x) (at x)) x)
+		 x =
+		 Cx a *
+		 higher_vector_derivative_n n
+		 (\x. (\x. vector_derivative ((\x. f) x) (at x)) x)
+		 x` THEN UNDISCH_TAC `!m x.
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. vector_derivative f (at x))
+		      x) differentiable
+		 at x` THEN SIMP_TAC []);;
+   let NORDER_FUNC_LINEAR = top_thm ();;
+
+   g ` !(a:complex) (x:real^1). ((f:real^1->real^2) differentiable (at x) )==>
+   (vector_derivative (\x:real^1. a * ((f:real^1->real^2) x)) (at x)) 
+		     = a * (vector_derivative (\x. f x) (at x))`;;
+   e (REPEAT GEN_TAC THEN STRIP_TAC);;
+   e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+   e ( MP_TAC(ISPECL
+	   [`( * ):complex->complex->complex`; `(\t:real^1. (a:complex) )`;
+	   `(f:real^1->real^2)`; `Cx(&0)`; `(vector_derivative (\x. (f:real^1->real^2) x) (at x))`] 
+	   HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+	   e (SIMP_TAC [GSYM  COMPLEX_VEC_0]);;
+	   e (SIMP_TAC [ HAS_VECTOR_DERIVATIVE_CONST]);;
+	   e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+	   e (STRIP_TAC);;
+	   e (POP_ASSUM MP_TAC THEN DISCH_THEN (MP_TAC o SPEC `x:real^1` ));;
+	   e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [ETA_AX; VECTOR_DERIVATIVE_WORKS]);;
+	   e (REPEAT DISCH_TAC);;
+	   e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [COMPLEX_VEC_0]);;
+
+	   e (REWRITE_TAC [COMPLEX_RING `(a * vector_derivative f (at x) + Cx (&0) * f x)=
+	   (a * vector_derivative f (at x) )`]);;
+   let VECTOR_DERIVATIVE_COMPLEX_MUL = top_thm ();;
+   
+   (*********************NORDER_FUNC_LINEARITY_COMPLEX_MUL*******************************)
+
+
+   g `!(n:num) (f:real^1->real^2) (a:complex) (x:real^1) .
+   (!m x. m <= n ==> (\x. higher_vector_derivative_n m f x ) differentiable (at x) ) ==>
+	(higher_vector_derivative_n n (\x. a * (f x)) x = 
+		      a * higher_vector_derivative_n n (\x. (f x)) x) `;;
+   e (INDUCT_TAC);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (REPEAT STRIP_TAC);;
+
+   e (SUBGOAL_THEN `!x. (vector_derivative (\x:real^1. a * ((f:real^1->real^2) x)) (at x)) 
+		     = a * (vector_derivative (\x. f x) (at x))` ASSUME_TAC);;
+	   e (GEN_TAC);;
+	   e (MATCH_MP_TAC VECTOR_DERIVATIVE_COMPLEX_MUL);;
+	   e (POP_ASSUM MP_TAC THEN DISCH_THEN (MP_TAC o SPECL [`0:num`; `x:real^1`]));;
+
+	   e (SIMP_TAC [higher_vector_derivative_n]);;
+	   e (ASM_MESON_TAC [ETA_AX]);;
+	   e (SUBGOAL_THEN `0 <= SUC n`ASSUME_TAC);;
+	     e (ARITH_TAC);;
+	   e (ASM_SIMP_TAC [ETA_AX]);;
+   e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [] THEN DISCH_TAC);;
+   e (UNDISCH_TAC `!f a x.
+	     (!m x.
+		  m <= n
+		  ==> (\x. higher_vector_derivative_n m f x) differentiable at x)
+	     ==> higher_vector_derivative_n n (\x. a * f x) x =
+		 a * higher_vector_derivative_n n (\x. f x) x` THEN DISCH_THEN (MP_TAC o SPECL [`(\x. vector_derivative (\x. (f:real^1->real^2) x) (at x))`; `a:real^2`; `x:real^1`]) THEN REPEAT DISCH_TAC);;
+
+
+     e (SUBGOAL_THEN `!m x. 
+     (m <= SUC n
+     ==> (\x. higher_vector_derivative_n m f x) differentiable at x) =
+	     (m <= n
+	     ==> (\x. higher_vector_derivative_n m (\x. vector_derivative f (at x)) x) differentiable at x)` ASSUME_TAC);;
+	   e (ASM_SIMP_TAC []);;
+	   e (REPEAT GEN_TAC THEN REPEAT STRIP_TAC);;
+	   e (UNDISCH_TAC `!(m:num) (x:real^1).
+	     (m:num) <= SUC (n:num)
+	     ==> (\(x:real^1). higher_vector_derivative_n (m:num)
+			       (f:real^1->real^2)
+			       (x:real^1)) differentiable
+		 at (x:real^1)`) ;;
+	   e (DISCH_THEN (MP_TAC o SPEC `SUC m`));;
+	   e (DISCH_THEN (MP_TAC o SPEC `x':real^1`));;
+
+	     e (SUBGOAL_THEN `(SUC m <= SUC n) = (m <= n) ` ASSUME_TAC);;
+		   e (ARITH_TAC);;
+		   e (ASM_SIMP_TAC []);;
+     e (ASM_SIMP_TAC [higher_vector_derivative_n]);;
+     e (ASM_SIMP_TAC []);;
+   e(UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x` THEN UNDISCH_TAC `!m x.
+	     m <= SUC n
+	     ==> (\x. higher_vector_derivative_n m f x) differentiable at x <=>
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. vector_derivative f (at x))
+		      x) differentiable
+		 at x` THEN SIMP_TAC [] THEN REPEAT DISCH_TAC);;
+   e (UNDISCH_TAC `(!m x.
+	      m <= n
+	      ==> (\x. higher_vector_derivative_n m
+		       (\x. vector_derivative (\x. f x) (at x))
+		       x) differentiable
+		  at x)
+	 ==> higher_vector_derivative_n n
+	     (\x. a * (\x. vector_derivative (\x. f x) (at x)) x)
+	     x =
+	     a *
+	     higher_vector_derivative_n n
+	     (\x. (\x. vector_derivative (\x. f x) (at x)) x)
+	     x` THEN POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [ETA_AX] THEN REPEAT DISCH_TAC);;
+
+   let NORDER_LINEARITY_FUNC = top_thm();;
+
+   g`!(h:real^M->real^N->real^P) (f:real^Q->real^M) (g:real^Q->real^N) 
+   (f':real^Q->real^M) (g':real^Q->real^N) (x:real^Q).
+       f differentiable (at x) /\
+       g differentiable (at x)  /\
+	   bilinear h
+       ==> (\x. h (f x) (g x)) differentiable (at x)`;;
+
+   e(REWRITE_TAC[differentiable]);;
+
+   e(REPEAT STRIP_TAC);;
+
+   e(EXISTS_TAC `(\ (d:real^Q). (h:real^M->real^N->real^P)
+			       ((f:real^Q->real^M) (x:real^Q))
+			       ((f'':real^Q->real^N) (d:real^Q)) +
+			       (h:real^M->real^N->real^P)
+			       ((f':real^Q->real^M) (d:real^Q))
+			       ((g:real^Q->real^N) (x:real^Q)))`);;
+
+   e(MATCH_MP_TAC HAS_DERIVATIVE_BILINEAR_AT);;
+
+   e(ASM_SIMP_TAC []);;
+
+   let DIFFERENTIABLE_BILINEAR_AT = top_thm();;
+
+
+   (*-----------------NDERIVATIVE_CEXP_AT --------------------------*)
+
+   g `!(n:num) (s:real^2) (t:real^1). higher_vector_derivative_n n (\t. cexp (s * Cx (drop (t)) ))  t   = s pow n * cexp (s * Cx (drop(t)))  `;;
+
+   e (INDUCT_TAC);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (ONCE_REWRITE_TAC [COMPLEX_RING `s pow 0 * cexp (s * Cx (drop t)) =cexp (s * Cx (drop t))`]);;
+     e (SIMP_TAC []);;
+
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (SIMP_TAC [VECTOR_DERIVATIVE_CEXP_ARGUMENT_MUL]);;
+     e (REPEAT STRIP_TAC);;
+     e (SUBGOAL_THEN `higher_vector_derivative_n (n:num)
+    (\(x:real^1). (s:real^2) * cexp ((s:real^2) * Cx (drop (x:real^1))))
+    (t:real^1) = (s:real^2) * higher_vector_derivative_n (n:num)
+    (\(x:real^1).  cexp ((s:real^2) * Cx (drop (x:real^1))))
+    (t:real^1)` ASSUME_TAC);;
+    e (MATCH_MP_TAC NORDER_LINEARITY_FUNC);;
+    e (REPEAT STRIP_TAC);;
+    e (ASM_SIMP_TAC [NORDER_DERIVATIVE_CEXP_DIFFERENTIABLE_AT]);;
+    e (ASM_SIMP_TAC []);;
+    e (ASM_SIMP_TAC [complex_pow]);;
+    e (ONCE_REWRITE_TAC [COMPLEX_RING `((s:real^2) * (s:real^2) pow (n:num)) *
+    cexp ((s:real^2) * Cx (drop (t:real^1))) =
+    (s:real^2) * ((s:real^2) pow (n:num) *
+    cexp ((s:real^2) * Cx (drop (t:real^1))))`]);;
+    e (ASM_SIMP_TAC [COMPLEX_EQ_MUL_LCANCEL]);;
+
+   let NDERIVATIVE_CEXP_AT = top_thm ();;
+
+ g `!(n:num)(a:real^2) (x:real^1) m.
+	 m <= n ==>((\x. higher_vector_derivative_n m (\x. cexp ((\x. a * Cx(drop (x))) x)) x) differentiable (at x))`;;
+   e (INDUCT_TAC);;
+	e (REPEAT DISCH_TAC THEN REPEAT STRIP_TAC);;
+	e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [LE] THEN ASM_SIMP_TAC [higher_vector_derivative_n] THEN DISCH_TAC);;
+	e (MATCH_MP_TAC HAS_VECTOR_DERIVATIVE_IMP_DIFFERENTIABLE);;
+	e (EXISTS_TAC `a * cexp (a * Cx (drop x))`);;
+	e (MATCH_MP_TAC CEXP_DERIV_AT);;
+
+
+	e ( MP_TAC(ISPECL
+      [`( * ):complex->complex->complex`; `(\x:real^1. (a:complex) )`;
+       `\x. Cx(drop x)`; `Cx(&0)`; `Cx(&1)`] HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+       e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+       e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+       e (REWRITE_TAC[GSYM COMPLEX_VEC_0]);;
+       e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+       e (SUBGOAL_THEN `(\x. Cx (drop x)) = 
+	   Cx o (\x . x) o drop` ASSUME_TAC);;
+	   e (SIMP_TAC [o_DEF]);;
+	   e (ONCE_ASM_REWRITE_TAC []);;
+      e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+      e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+      e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+      e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+      e (REWRITE_TAC[COMPLEX_RING `(a * Cx (&1) + Cx (&0) * Cx (drop x)) = ((a))`]);;
+
+
+      e (REPEAT STRIP_TAC);;
+      e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [LE] THEN STRIP_TAC);;
+      e (ASM_SIMP_TAC []);;
+      e (SIMP_TAC [higher_vector_derivative_n]);;
+
+      e (SUBGOAL_THEN `!x.  (vector_derivative (\x. cexp (a * Cx (drop x))) (at x)) = ((a * cexp (a * Cx (drop x))))` ASSUME_TAC);;
+      e (GEN_TAC);;
+       e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+	e (MATCH_MP_TAC CEXP_DERIV_AT);;
+
+
+	e ( MP_TAC(ISPECL
+      [`( * ):complex->complex->complex`; `(\x:real^1. (a:complex) )`;
+       `\x. Cx(drop x)`; `Cx(&0)`; `Cx(&1)`] HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+       e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+   e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+       e (REWRITE_TAC[GSYM COMPLEX_VEC_0]);;
+       e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+       e (SUBGOAL_THEN `(\x. Cx (drop x)) = 
+	   Cx o (\x . x) o drop` ASSUME_TAC);;
+	   e (SIMP_TAC [o_DEF]);;
+	   e (ONCE_ASM_REWRITE_TAC []);;
+      e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+      e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+      e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+      e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+      e (REWRITE_TAC[COMPLEX_RING `(a * Cx (&1) + Cx (&0) * Cx (drop x)) = ((a))`]);;
+
+
+      e (POP_ASSUM MP_TAC THEN SIMP_TAC [] THEN DISCH_TAC);;
+
+
+      e (SUBGOAL_THEN `!x.  higher_vector_derivative_n n (\x. a * cexp (a * Cx (drop x))) x = a *  higher_vector_derivative_n n (\x. cexp (a * Cx (drop x))) x` ASSUME_TAC);;
+      e (GEN_TAC);;
+      e (MATCH_MP_TAC NORDER_LINEARITY_FUNC);;
+
+      e (UNDISCH_TAC `!a x m.
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. cexp ((\x. a * Cx (drop x)) x))
+		      x) differentiable
+		 at x` THEN DISCH_THEN (MP_TAC o SPEC `a:real^2`));;
+   e (ASM_SIMP_TAC []);;
+   e (POP_ASSUM MP_TAC THEN SIMP_TAC []);;
+   e (STRIP_TAC);;
+
+
+   e ( MP_TAC(ISPECL
+      [`( * ):complex->complex->complex`; `(\x:real^1. (a:complex) )`;
+       `\x. higher_vector_derivative_n n (\x. cexp (a * Cx (drop x))) x`]
+       DIFFERENTIABLE_BILINEAR_AT));;
+   e (ASM_SIMP_TAC [DIFFERENTIABLE_CONST]);;
+   e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+   e (UNDISCH_TAC `!a x m.
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. cexp ((\x. a * Cx (drop x)) x))
+		      x) differentiable
+		 at x` );;
+
+   e (DISCH_THEN (MP_TAC o SPEC `a:real^2`));;
+   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+   e (DISCH_THEN (MP_TAC o SPEC `n:num`));;
+   e (SUBGOAL_THEN `n:num <= n` ASSUME_TAC);;
+   e (ARITH_TAC);;
+   e (POP_ASSUM MP_TAC THEN SIMP_TAC []);;
+
+
+   e (UNDISCH_TAC `!a x m.
+	     m <= n
+	     ==> (\x. higher_vector_derivative_n m
+		      (\x. cexp ((\x. a * Cx (drop x)) x))
+		      x) differentiable
+		 at x` );;
+
+   e (DISCH_THEN (MP_TAC o SPEC `a:real^2`));;
+   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+   e (DISCH_THEN (MP_TAC o SPEC `m:num`));;
+   e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC []);;
+
+   let MN_ORDER_CEXP_DIFFERENTIABLE = top_thm();;
+
+
+   g `!(n:num) (a: real^2) (x:real^1). 
+     (\x. higher_vector_derivative_n n (\x. cexp (a * Cx (drop (x)))) x) 
+	  differentiable (at x)`;;
+
+   e (INDUCT_TAC);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (REPEAT STRIP_TAC);;
+     e (MATCH_MP_TAC  HAS_VECTOR_DERIVATIVE_IMP_DIFFERENTIABLE);;
+     e (EXISTS_TAC `a *  cexp (a * Cx (drop x))`);;
+     e (MATCH_MP_TAC CEXP_DERIV_AT);;
+      e ( MP_TAC(ISPECL
+      [`( * ):complex->complex->complex`; `(\x:real^1. (a:complex) )`;
+       `\x. Cx(drop x)`; `Cx(&0)`; `Cx(&1)`] HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+       e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+   e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+       e (REWRITE_TAC[GSYM COMPLEX_VEC_0]);;
+       e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+       e (SUBGOAL_THEN `(\x. Cx (drop x)) = 
+	   Cx o (\x . x) o drop` ASSUME_TAC);;
+	   e (SIMP_TAC [o_DEF]);;
+	   e (ONCE_ASM_REWRITE_TAC []);;
+      e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+      e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+      e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+      e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+      e (REWRITE_TAC[COMPLEX_RING `(a * Cx (&1) + Cx (&0) * Cx (drop x)) = ((a))`]);;
+
+
+      e (SIMP_TAC [higher_vector_derivative_n]);;
+      e (REPEAT STRIP_TAC);;
+   e (SUBGOAL_THEN `!x.  (vector_derivative (\x. cexp (a * Cx (drop x))) (at x)) = ((a * cexp (a * Cx (drop x))))` ASSUME_TAC);;
+      e (GEN_TAC);;
+       e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+	e (MATCH_MP_TAC CEXP_DERIV_AT);;
+
+
+	e ( MP_TAC(ISPECL
+      [`( * ):complex->complex->complex`; `(\x:real^1. (a:complex) )`;
+       `\x. Cx(drop x)`; `Cx(&0)`; `Cx(&1)`] HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+       e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+       e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+       e (REWRITE_TAC[GSYM COMPLEX_VEC_0]);;
+       e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+       e (SUBGOAL_THEN `(\x. Cx (drop x)) = 
+	   Cx o (\x . x) o drop` ASSUME_TAC);;
+	   e (SIMP_TAC [o_DEF]);;
+	   e (ONCE_ASM_REWRITE_TAC []);;
+      e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+      e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+      e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+      e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+      e (REWRITE_TAC[COMPLEX_RING `(a * Cx (&1) + Cx (&0) * Cx (drop x)) = ((a))`]);;
+      e (POP_ASSUM MP_TAC THEN SIMP_TAC [] THEN DISCH_TAC);;
+
+
+   e (SUBGOAL_THEN `!x.  higher_vector_derivative_n n (\x. a * cexp (a * Cx (drop x))) x = a *  higher_vector_derivative_n n (\x. cexp (a * Cx (drop x))) x` ASSUME_TAC);;
+      e (GEN_TAC);;
+      e (MATCH_MP_TAC NORDER_LINEARITY_FUNC);;
+      e (REPEAT STRIP_TAC);;
+      e ( MP_TAC(ISPECL
+      [`n:num`; `((a:complex) )`;
+       `x:real^1`; `m:num`] MN_ORDER_CEXP_DIFFERENTIABLE));;
+       e (ASM_SIMP_TAC []);;
+       e (ASM_SIMP_TAC []);;
+       e ( MP_TAC(ISPECL
+      [`( * ):complex->complex->complex`; `(\x:real^1. (a:complex) )`;
+       `\x. higher_vector_derivative_n n (\x. cexp (a * Cx (drop x))) x`]
+       DIFFERENTIABLE_BILINEAR_AT));;
+   e (ASM_SIMP_TAC [DIFFERENTIABLE_CONST]);;
+   e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+
+   let NORDER_DERIVATIVE_CEXP_DIFFERENTIABLE_AT = top_thm();;
+
+
+
+(*-----------------------------------------------------*)
+
+   (*-----------------NDERIVATIVE_CEXP_AT --------------------------*)
+
+   g `!(n:num) (s:real^2) (t:real^1). higher_vector_derivative_n n (\t. cexp (s * Cx (drop (t)) ))  t   = s pow n * cexp (s * Cx (drop(t)))  `;;
+
+   e (INDUCT_TAC);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (ONCE_REWRITE_TAC [COMPLEX_RING `s pow 0 * cexp (s * Cx (drop t)) =cexp (s * Cx (drop t))`]);;
+     e (SIMP_TAC []);;
+
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (SIMP_TAC [VECTOR_DERIVATIVE_CEXP_ARGUMENT_MUL]);;
+     e (REPEAT STRIP_TAC);;
+     e (SUBGOAL_THEN `higher_vector_derivative_n (n:num)
+    (\(x:real^1). (s:real^2) * cexp ((s:real^2) * Cx (drop (x:real^1))))
+    (t:real^1) = (s:real^2) * higher_vector_derivative_n (n:num)
+    (\(x:real^1).  cexp ((s:real^2) * Cx (drop (x:real^1))))
+    (t:real^1)` ASSUME_TAC);;
+    e (MATCH_MP_TAC NORDER_LINEARITY_FUNC);;
+    e (REPEAT STRIP_TAC);;
+    e (ASM_SIMP_TAC [NORDER_DERIVATIVE_CEXP_DIFFERENTIABLE_AT]);;
+    e (ASM_SIMP_TAC []);;
+    e (ASM_SIMP_TAC [complex_pow]);;
+    e (ONCE_REWRITE_TAC [COMPLEX_RING `((s:real^2) * (s:real^2) pow (n:num)) *
+    cexp ((s:real^2) * Cx (drop (t:real^1))) =
+    (s:real^2) * ((s:real^2) pow (n:num) *
+    cexp ((s:real^2) * Cx (drop (t:real^1))))`]);;
+    e (ASM_SIMP_TAC [COMPLEX_EQ_MUL_LCANCEL]);;
+
+   let NDERIVATIVE_CEXP_AT = top_thm ();;
+
+
+
+   (*----------------- HOMO_NDIFF_CEXP_EQ --------------------------*)
+
+   g `!(L:(real^1->real^1)list) (y:real^1->real^2) (n:num) (x:real^1).
+	    ndiff_eq_lhs (L:(real^1->real^1)list) (\x. cexp ((s:real^2) * (Cx(drop(x))) )) (x:real^1) 
+	    = (cexp ( s * Cx(drop (x)))) * vsum (0..LENGTH L - 1) ((\n:num. Cx
+		       (drop (EL (n:num) (L:(real^1->real^1)list) (x:real^1))) *
+		      s pow n) )`;;
+   e (REPEAT STRIP_TAC);;
+   e (ONCE_REWRITE_TAC [ndiff_eq_lhs]);;
+   e (ONCE_REWRITE_TAC [NDERIVATIVE_CEXP_AT]);;
+   e (SUBGOAL_THEN `cexp (s * Cx (drop x)) *
+    vsum (0..LENGTH L - 1) (\n. Cx (drop (EL n L x)) * s pow n) = 
+    vsum (0..LENGTH L - 1) (\n. cexp (s * Cx (drop x)) * Cx (drop (EL n L x)) * s pow n)` ASSUME_TAC);;
+   e (ONCE_REWRITE_TAC [EQ_SYM_EQ]);;
+   e (MATCH_MP_TAC VSUM_COMPLEX_LMUL);;
+   e (SIMP_TAC [FINITE_NUMSEG]);;
+   e (ASM_SIMP_TAC []);;
+   e (MATCH_MP_TAC VSUM_EQ);;
+   e (REPEAT STRIP_TAC);;
+   e (SIMPLE_COMPLEX_ARITH_TAC);;
+
+   let HOMO_NDIFF_CEXP_EQ = top_thm ();;
+
+   (*----------------- DELAYED_NDERIVATIVE_CEXP_AT--------------------------*)
+
+   g `! (n:num) (t:real^1) (s:complex) (d:real^1) . higher_vector_derivative_n n (\t. cexp (s * Cx (drop t))) (t - d) = s pow n * cexp (s * Cx (drop t - drop d))`;;
+
+
+   e (INDUCT_TAC);;
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (ONCE_REWRITE_TAC [COMPLEX_RING `s pow 0 * cexp (s * Cx (drop t - drop d)) = cexp (s * Cx (drop t - drop d))
+   `]);;
+     e (SIMP_TAC [DROP_SUB]);;
+
+     e (SIMP_TAC [higher_vector_derivative_n]);;
+     e (SIMP_TAC [VECTOR_DERIVATIVE_CEXP_ARGUMENT_MUL]);;
+     e (REPEAT STRIP_TAC);;
+     e (SUBGOAL_THEN `higher_vector_derivative_n n (\x. s * cexp (s * Cx (drop x))) (t - d) = (s:real^2) * higher_vector_derivative_n n (\x.  cexp (s * Cx (drop x))) (t - d) ` ASSUME_TAC);;
+    e (MATCH_MP_TAC NORDER_LINEARITY_FUNC);;
+    e (REPEAT STRIP_TAC);;
+    e (ASM_SIMP_TAC [NORDER_DERIVATIVE_CEXP_DIFFERENTIABLE_AT]);;
+    e (ASM_SIMP_TAC []);;
+    e (ASM_SIMP_TAC [complex_pow]);;
+    e (ONCE_REWRITE_TAC [COMPLEX_RING `s * s pow n * cexp (s * Cx (drop t - drop d)) =
+    (s * s pow n) * cexp (s * Cx (drop t - drop d))`]);;
+    e (ASM_SIMP_TAC [COMPLEX_EQ_MUL_LCANCEL]);;
+
+   let DELAYED_NDERIVATIVE_CEXP_AT = top_thm ();;
+
+   (*.*.*.*.*.*.*..*.*..*.*.*.*.*.*.*.*.*.*.*.*.*.*.*..*.*.*.*.*)
+   (*.*.*.*.*differential equaiton with cexp with delay*.*.*.*.*)
+   (*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*..*.*.*.*)
+
+   (*-----------------  HOMO_NDIFF_CEXP_DELAYED_EQ--------------------------*)
+
+   g `!(L:(real^1->real^1)list) (y:real^1->real^2) (n:num) (x:real^1) (d:real^1).
+	    ndiff_eq_lhs (L:(real^1->real^1)list) (\x. cexp ((s:real^2) * (Cx(drop(x))) )) ((x:real^1) - d) 
+	    = (cexp ( s * Cx(drop (x) - drop (d)))) * vsum (0..LENGTH L - 1) ((\n:num. Cx
+		       (drop (EL (n:num) (L:(real^1->real^1)list) ((x:real^1) - d))) *
+		      s pow n) )`;;
+   e (REPEAT STRIP_TAC);;
+   e (ONCE_REWRITE_TAC [ndiff_eq_lhs]);;
+   e (ONCE_REWRITE_TAC [CEXP_ADD]);;
+
+   e (ONCE_REWRITE_TAC [DELAYED_NDERIVATIVE_CEXP_AT]);;
+   e (SUBGOAL_THEN `cexp (s * Cx (drop x - drop d)) *
+    vsum (0..LENGTH L - 1) (\n. Cx (drop (EL n L (x - d))) * s pow n) = 
+    vsum (0..LENGTH L - 1) (\n. cexp (s * Cx (drop x - drop d)) * Cx (drop (EL n L (x - d))) * s pow n)` ASSUME_TAC);;
+   e (ONCE_REWRITE_TAC [EQ_SYM_EQ]);;
+   e (MATCH_MP_TAC VSUM_COMPLEX_LMUL);;
+   e (SIMP_TAC [FINITE_NUMSEG]);;
+   e (ASM_SIMP_TAC []);;
+   e (MATCH_MP_TAC VSUM_EQ);;
+   e (REPEAT STRIP_TAC);;
+   e (SIMPLE_COMPLEX_ARITH_TAC);;
+
+   let HOMO_NDIFF_CEXP_DELAYED_EQ = top_thm ();;
+
+   (*-----------------N_DERIV_SOLUTION_DIFFERENTIABLE_AT_X--------------------------*)
+
+   g `!(C:(real) list) (Y:(real^1->real^2) list) (x:real^1) (m:num) P.
+	  (n_order_differentiable_func_list Y P) /\ (m < P) ==>
+	 ((\x. higher_vector_derivative_n m (\x. linear_sol_combin C Y x) x) differentiable (at x))`;;
+   e (GEN_TAC);;
+
+   e (LIST_INDUCT_TAC);;
+	   e (SIMP_TAC [n_order_differentiable_func_list;linear_sol_combin;LENGTH ]);;
+	   e (SIMP_TAC [NORDER_HIGHER_VECTOR_DERIVATIVE_0]);;
+	   e (SIMP_TAC [DIFFERENTIABLE_CONST]);;
+
+	   e (SIMP_TAC [n_order_differentiable_func_list;linear_sol_combin;LENGTH]);;
+
+	   e (ONCE_REWRITE_TAC [COMPLEX_RING `linear_sol_combin C t x = Cx(&1) * linear_sol_combin C t x`]);;
+	   e (ONCE_REWRITE_TAC [COMPLEX_RING `(\x. higher_vector_derivative_n m
+		 (\x. Cx (EL (LENGTH C - SUC (LENGTH t)) C) * h x +
+		      Cx (&1) * linear_sol_combin C t x)
+		 x) = (\x. higher_vector_derivative_n m
+		 (\x. Cx (EL (LENGTH C - SUC (LENGTH t)) C) * (\x. h x) x +
+		     Cx (&1) * (\x. linear_sol_combin C t x) x) x)
+		  `]);;
+	    e (REPEAT STRIP_TAC);;
+	    e (SUBGOAL_THEN `!x. higher_vector_derivative_n m (\x. Cx (EL (LENGTH C - SUC (LENGTH t)) C) * (\x. h x) x +
+		      Cx (&1) * (\x. linear_sol_combin C t x) x)
+		 x =
+		Cx (EL (LENGTH C - SUC (LENGTH t)) C) * higher_vector_derivative_n m (\x. (\x. h x) x) x +
+		Cx (&1) * higher_vector_derivative_n m (\x.(\x. linear_sol_combin C t x) x)  x` ASSUME_TAC);;
+		   e (GEN_TAC);;
+		   e (MATCH_MP_TAC N_DERIV_LINEARITY_1);;
+		   e (REPEAT STRIP_TAC);;
+		   e (SUBGOAL_THEN `m' < P:num`ASSUME_TAC);; 
+		     e (MATCH_MP_TAC  LET_TRANS);; 
+		     e (EXISTS_TAC `m:num`);;
+		     e (ASM_SIMP_TAC []);;
+
+		   e (UNDISCH_TAC `!(m:num) (x:real^1).
+	     (m:num) < (P:num)
+	     ==> (\(x:real^1). higher_vector_derivative_n (m:num)
+			       (h:real^1->real^2)
+			       (x:real^1)) differentiable
+		 at (x:real^1)`);; 
+		   e (DISCH_THEN (MP_TAC o SPEC `m':num`));;
+		   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+		   e (ASM_SIMP_TAC [ETA_AX]);;
+		   e (ASM_SIMP_TAC [ETA_AX]);;
+
+		   e (UNDISCH_TAC `!(x:real^1) (m:num) (P:num).
+	     n_order_differentiable_func_list (t:(real^1->real^2)list) (P:num) /\
+	     (m:num) < (P:num)
+	     ==> (\(x:real^1). higher_vector_derivative_n (m:num)
+			       (\(x:real^1). linear_sol_combin (C:(real)list)
+					     (t:(real^1->real^2)list)
+					     (x:real^1))
+			       (x:real^1)) differentiable
+		 at (x:real^1)`);;
+		   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+		   e (DISCH_THEN (MP_TAC o SPEC `m':num`));;
+		   e (DISCH_THEN (MP_TAC o SPEC `P:num`));;
+
+		   e (SUBGOAL_THEN `m':num < P` ASSUME_TAC);;
+		     e (MATCH_MP_TAC LET_TRANS);;
+		     e (EXISTS_TAC `m:num`);;
+		     e (ASM_SIMP_TAC []);;
+
+		   e (ASM_SIMP_TAC []);;
+		   e (ASM_SIMP_TAC [ETA_AX]);;
+		   e (ASM_SIMP_TAC []);;
+
+	   e (MATCH_MP_TAC DIFFERENTIABLE_ADD);;
+	   e (CONJ_TAC);;
+
+	   e (ASM_SIMP_TAC [GSYM COMPLEX_CMUL]);;
+	   e (MATCH_MP_TAC DIFFERENTIABLE_CMUL);;  
+	   e (UNDISCH_TAC 	`!m x.
+	     m < P
+	     ==> (\x. higher_vector_derivative_n m h x) differentiable at x`);;
+	   e (DISCH_THEN (MP_TAC o SPEC `m:num`));;
+	   e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+	   e (ASM_SIMP_TAC [LE_LT]);;
+	   e (ASM_SIMP_TAC [ETA_AX]);;
+
+	   e (ASM_SIMP_TAC [GSYM COMPLEX_CMUL]);;
+	   e (MATCH_MP_TAC DIFFERENTIABLE_CMUL);;
+	   e (UNDISCH_TAC `!x m P.
+	     n_order_differentiable_func_list t P /\ m < P
+	     ==> (\x. higher_vector_derivative_n m (\x. linear_sol_combin C t x)
+		      x) differentiable
+		 at x`);;
+	    e (DISCH_THEN (MP_TAC o SPEC `x:real^1`));;
+	    e (DISCH_THEN (MP_TAC o SPEC `m:num`));;
+	    e (DISCH_THEN (MP_TAC o SPEC `P:num`));;
+	    e (ASM_SIMP_TAC []);;
+
+   let N_DERIV_SOLUTION_DIFFERENTIABLE_AT_X = top_thm();;
+
+
+
+(**Formally verified result for the correction of the solution of the differential equations**)
+
+(**Theorem 2.2 (Table 4)**)
+   g `!(Y:(real^1->real^2) list) (Yp:(real^1->real^2) ) (L:(real^1->real^1)list) (L1:(real^1->real^1) list) (y1:(real^1->real^2) list) (x:real^1) (C:(real) list) .
+   (n_order_differentiable_func_list Y (LENGTH L)) /\ (!m (x:real^1). (\x. higher_vector_derivative_n m Yp x) differentiable (at x)) /\
+   (n_order_homo_eq_solution_list Y L x) /\ (n_order_nonhomo_equ_solution L L1 Yp y1 x) /\ ~(LENGTH (L:(real^1->real^1)list) = 0)
+   ==>
+   ndiff_eq_lhs L (\x:real^1. linear_sol_combin C Y x +  Yp x) x = ndiff_eq_rhs12 L1 y1 x `;; 
+    e (LIST_INDUCT_TAC);;
+		   e (ASM_SIMP_TAC [linear_sol_combin]);;
+
+		   e (ASM_SIMP_TAC [n_order_nonhomo_equ_solution]);;
+		   e (ONCE_REWRITE_TAC [COMPLEX_RING `( Cx (&0) + (Yp:real^1->real^2) (x:real^1)) = (Yp x)`]);;
+		   e (SIMP_TAC [ETA_AX]);;
+
+		   e (REPEAT STRIP_TAC);;
+		   e (SIMP_TAC [ndiff_eq_lhs]);;
+		   e (ONCE_REWRITE_TAC [COMPLEX_RING `linear_sol_combin C (CONS h t) x + Yp x = Cx(&1) * linear_sol_combin C (CONS h t) x + Cx(&1) * Yp x`]);;
+		   e (SUBGOAL_THEN `vsum (0..LENGTH L - 1)
+    (\n. Cx (drop (EL n L x)) *
+	 higher_vector_derivative_n n
+	 (\x. Cx (&1) * linear_sol_combin C (CONS h t) x + Cx (&1) * Yp x)
+	 x) = (vsum (0..LENGTH L - 1)
+    (\n. Cx (drop (EL n L x)) *
+
+	 (Cx (&1) * higher_vector_derivative_n n (\x. (linear_sol_combin C (CONS h t) x))  x + Cx (&1) * higher_vector_derivative_n n ((\x. Yp x) )  x)
+	 ))` ASSUME_TAC);;
+			   e (MATCH_MP_TAC VSUM_EQ);;
+			   e (REPEAT STRIP_TAC);;
+			   e (ASM_CASES_TAC `(drop (EL (x':num) (L:(real^1->real^1)list) (x:real^1))) = &0`);;
+			   e (ASM_REWRITE_TAC []);;
+			   e (SIMPLE_COMPLEX_ARITH_TAC);;
+
+			   e (SIMP_TAC [COMPLEX_EQ_MUL_LCANCEL]);;
+			   e (DISJ2_TAC);;
+			   e (MATCH_MP_TAC N_DERIV_LINEARITY_1);;
+	   e (UNDISCH_TAC `(x':num) IN 0..LENGTH (L:(real^1->real^1)list) - 1`);;
+			   e (SIMP_TAC [IN_NUMSEG]);;
+			   e (REPEAT STRIP_TAC);;
+
+			   e (SIMP_TAC [linear_sol_combin]);;
+			   e (ONCE_REWRITE_TAC [COMPLEX_RING `linear_sol_combin C t x = Cx(&1) * linear_sol_combin C t x`]);;
+			   e (SUBGOAL_THEN `!x. (higher_vector_derivative_n m
+	 (\x. Cx (EL (LENGTH C - LENGTH (CONS h t)) C) * h x +
+	      Cx (&1) * linear_sol_combin C t x)
+	 x)
+	  = (Cx (EL (LENGTH C - LENGTH (CONS h t)) C) * higher_vector_derivative_n m (\x. h x)  x + Cx(&1) *  higher_vector_derivative_n m (\x. linear_sol_combin C t x) x)` ASSUME_TAC);;
+			      e (STRIP_TAC);;
+			      e (MATCH_MP_TAC N_DERIV_LINEARITY_1);;
+			      e (REPEAT STRIP_TAC);;
+			      e (UNDISCH_TAC `n_order_differentiable_func_list
+	 (CONS (h:real^1->real^2) (t:(real^1->real^2)list))
+	 (LENGTH (L:(real^1->real^1)list))`);;
+			      e (SIMP_TAC [n_order_differentiable_func_list]);;
+			      e (REPEAT STRIP_TAC);;
+			      e (UNDISCH_TAC `!(m:num) (x:real^1).
+	     (m:num) < LENGTH (L:(real^1->real^1)list)
+	     ==> (\(x:real^1). higher_vector_derivative_n (m:num)
+			       (h:real^1->real^2)
+			       (x:real^1)) differentiable
+		 at (x:real^1)`);;
+
+		      e (DISCH_THEN (MP_TAC o SPEC `m':num`));;
+			      e (DISCH_THEN (MP_TAC o SPEC `x'':real^1`));;
+			      e (SUBGOAL_THEN `(m':num) < LENGTH (L:(real^1->real^1)list)` ASSUME_TAC);;
+
+   e (MATCH_MP_TAC LET_TRANS);;
+			       e (EXISTS_TAC `(m:num)`);;
+				e (ASM_REWRITE_TAC []);;
+				e (MATCH_MP_TAC LET_TRANS);;
+				e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list) - 1`);;
+   e (CONJ_TAC);;
+   e (MATCH_MP_TAC LE_TRANS);;
+   e (EXISTS_TAC `(x':num)`);;
+
+				e (ASM_REWRITE_TAC []);;
+   e (ASM_SIMP_TAC[ARITH_RULE `n - 1 < n <=> ~(n = 0)`] );;  
+
+				e (ASM_SIMP_TAC []);;
+
+
+	 e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx (&1) * higher_vector_derivative_n m (\x. linear_sol_combin C t x) x = higher_vector_derivative_n m (\x. linear_sol_combin C t x) x`]);;
+	 e (MATCH_MP_TAC N_DERIV_SOLUTION_DIFFERENTIABLE_AT_X);;
+    e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list)`);;
+	 e (STRIP_TAC);;
+	 e (UNDISCH_TAC `n_order_differentiable_func_list
+	 (CONS (h:real^1->real^2) (t:(real^1->real^2)list))
+	 (LENGTH (L:(real^1->real^1)list))`);;
+	 e (SIMP_TAC [n_order_differentiable_func_list]);;
+	 e (ASM_SIMP_TAC []);;
+
+   e (MATCH_MP_TAC LET_TRANS);;
+			       e (EXISTS_TAC `(m:num)`);;
+				e (ASM_REWRITE_TAC []);;
+				e (MATCH_MP_TAC LET_TRANS);;
+				e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list) - 1`);;
+   e (CONJ_TAC);;
+   e (MATCH_MP_TAC LE_TRANS);;
+   e (EXISTS_TAC `(x':num)`);;
+
+				e (ASM_REWRITE_TAC []);;
+   e (ASM_SIMP_TAC[ARITH_RULE `n - 1 < n <=> ~(n = 0)`] );;  
+
+				e (ASM_SIMP_TAC []);;
+
+    e (POP_ASSUM (K ALL_TAC));;
+
+		 e (MATCH_MP_TAC DIFFERENTIABLE_ADD);;
+		 e (CONJ_TAC);;
+		 e (SIMP_TAC [GSYM COMPLEX_CMUL]);;
+		 e (MATCH_MP_TAC DIFFERENTIABLE_CMUL);;
+
+
+    e (UNDISCH_TAC `n_order_differentiable_func_list
+	 (CONS (h:real^1->real^2) (t:(real^1->real^2)list))
+	 (LENGTH (L:(real^1->real^1)list))`);;
+			      e (SIMP_TAC [n_order_differentiable_func_list]);;
+			      e (REPEAT STRIP_TAC);;
+			      e (UNDISCH_TAC `!(m:num) (x:real^1).
+	     (m:num) < LENGTH (L:(real^1->real^1)list)
+	     ==> (\(x:real^1). higher_vector_derivative_n (m:num)
+			       (h:real^1->real^2)
+			       (x:real^1)) differentiable
+		 at (x:real^1)`);;
+
+		      e (DISCH_THEN (MP_TAC o SPEC `m:num`));;
+			      e (DISCH_THEN (MP_TAC o SPEC `x'':real^1`));;
+			      e (SUBGOAL_THEN `(m:num) < LENGTH (L:(real^1->real^1)list)` ASSUME_TAC);;
+
+   e (MATCH_MP_TAC LET_TRANS);;
+			       e (EXISTS_TAC `(x':num)`);;
+				e (ASM_REWRITE_TAC []);;
+				e (MATCH_MP_TAC LET_TRANS);;
+				e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list) - 1`);;
+   e (ASM_SIMP_TAC []);;
+
+   e (ASM_SIMP_TAC[ARITH_RULE `n - 1 < n <=> ~(n = 0)`] );;  
+
+				e (ASM_SIMP_TAC []);;
+				e (ASM_SIMP_TAC [ETA_AX]);;
+
+
+
+	 e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx (&1) * higher_vector_derivative_n m (\x. linear_sol_combin C t x) x = higher_vector_derivative_n m (\x. linear_sol_combin C t x) x`]);;
+	 e (MATCH_MP_TAC N_DERIV_SOLUTION_DIFFERENTIABLE_AT_X);;
+	 e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list)`);;
+	 e (STRIP_TAC);;
+	 e (UNDISCH_TAC `n_order_differentiable_func_list
+	 (CONS (h:real^1->real^2) (t:(real^1->real^2)list))
+	 (LENGTH (L:(real^1->real^1)list))`);;
+	 e (SIMP_TAC [n_order_differentiable_func_list]);;
+
+
+
+   e (MATCH_MP_TAC LET_TRANS);;
+			       e (EXISTS_TAC `(x':num)`);;
+				e (ASM_REWRITE_TAC []);;
+				e (MATCH_MP_TAC LET_TRANS);;
+				e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list) - 1`);;
+   e (ASM_SIMP_TAC []);;
+
+   e (ASM_SIMP_TAC[ARITH_RULE `n - 1 < n <=> ~(n = 0)`] );;  
+
+				e (ASM_SIMP_TAC []);;
+				e (ASM_REWRITE_TAC []);;
+
+   e (POP_ASSUM (K ALL_TAC));;
+
+   (***********)
+   e (ONCE_REWRITE_TAC [COMPLEX_RING` (Cx (drop (EL n L x)) *
+	 (Cx (&1) *
+	  higher_vector_derivative_n n (\x. linear_sol_combin C (CONS h t) x) x +
+	  Cx (&1) * higher_vector_derivative_n n (\x. Yp x) x))= 
+	  (Cx (drop (EL n L x)) *
+		higher_vector_derivative_n n (\x. linear_sol_combin C (CONS h t) x) x +
+	  Cx (drop (EL n L x)) * higher_vector_derivative_n n (\x. Yp x) x)`]);;
+
+
+	  e (ONCE_REWRITE_TAC [COMPLEX_RING `(Cx (drop (EL n L x)) *
+	 higher_vector_derivative_n n (\x. linear_sol_combin C (CONS h t) x) x)= ((\(n:num). Cx (drop (EL n L x)) *
+	 higher_vector_derivative_n n (\x. linear_sol_combin C (CONS h t) x) x) n)`]);;
+	 e (ONCE_REWRITE_TAC [COMPLEX_RING `(Cx (drop (EL n L x)) * higher_vector_derivative_n n (\x. Yp x) x)= ((\(n:num). Cx (drop (EL n L x)) * higher_vector_derivative_n n (\x. Yp x) x) n)`]);;
+	 e (SIMP_TAC [VSUM_ADD_NUMSEG]);;
+	 e (SIMP_TAC [linear_sol_combin]);;
+   (**********)
+     e (ONCE_REWRITE_TAC [COMPLEX_RING `linear_sol_combin C t x = Cx(&1) * linear_sol_combin C t x`]);;
+	 e (SUBGOAL_THEN `(vsum (0..LENGTH L - 1)
+    (\n. Cx (drop (EL n L x)) *
+	 higher_vector_derivative_n n
+	 (\x. Cx (EL (LENGTH C - LENGTH (CONS h t)) C) * h x +
+	      Cx (&1) * linear_sol_combin C t x)
+	 x)) = (vsum (0..LENGTH L - 1)
+    (\n. Cx (drop (EL n L x)) *
+	 (Cx (EL (LENGTH C - LENGTH (CONS h t)) C) * higher_vector_derivative_n n (\x. h x) x +
+	      Cx (&1) * higher_vector_derivative_n n (\x. linear_sol_combin C t x) x)))` ASSUME_TAC);;
+	  e (MATCH_MP_TAC VSUM_EQ);;
+	  e (REPEAT STRIP_TAC);;
+
+	  e (ASM_CASES_TAC `(drop (EL (x':num) (L:(real^1->real^1)list) (x:real^1))) = &0`);;
+	  e (ASM_SIMP_TAC []);;
+	  e (SIMPLE_COMPLEX_ARITH_TAC);;
+	  e (ASM_SIMP_TAC []);;
+
+	  e (SIMP_TAC [COMPLEX_EQ_MUL_LCANCEL]);;
+	  e (DISJ2_TAC);;
+	  e (MATCH_MP_TAC N_DERIV_LINEARITY_1);;
+	  e (UNDISCH_TAC `(x':num) IN 0..LENGTH (L:(real^1->real^1)list) - 1`);;
+	  e (SIMP_TAC [IN_NUMSEG]);;
+	  e (REPEAT STRIP_TAC);;
+	  e (UNDISCH_TAC `n_order_differentiable_func_list
+	 (CONS (h:real^1->real^2) (t:(real^1->real^2)list))
+	 (LENGTH (L:(real^1->real^1)list))`);;
+	 e (SIMP_TAC [n_order_differentiable_func_list]);;
+	 e (REPEAT STRIP_TAC);;
+	 e (UNDISCH_TAC `!(m:num) (x:real^1).
+	     (m:num) < LENGTH (L:(real^1->real^1)list)
+	     ==> (\(x:real^1). higher_vector_derivative_n (m:num)
+			       (h:real^1->real^2)
+			       (x:real^1)) differentiable
+		 at (x:real^1)`);;
+
+		 e (DISCH_THEN (MP_TAC o SPEC `m:num`));;
+		 e (DISCH_THEN (MP_TAC o SPEC `x'':real^1`));;
+		 e (SUBGOAL_THEN `(m:num) < LENGTH (L:(real^1->real^1)list)` ASSUME_TAC);;
+		   e (MATCH_MP_TAC LET_TRANS);;
+		   e (EXISTS_TAC `x':num`);;
+		   e (ASM_REWRITE_TAC []);;
+		   e (MATCH_MP_TAC LET_TRANS);;
+		   e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list) - 1`);;
+
+		 e (ASM_REWRITE_TAC []);;
+
+   e (ASM_SIMP_TAC[ARITH_RULE `n - 1 < n <=> ~(n = 0)`] );;  
+
+				e (ASM_SIMP_TAC []);;
+
+    e (MATCH_MP_TAC N_DERIV_SOLUTION_DIFFERENTIABLE_AT_X);;
+   e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list)`);;
+		 e (STRIP_TAC);;
+
+   e (UNDISCH_TAC `n_order_differentiable_func_list
+	 (CONS (h:real^1->real^2) (t:(real^1->real^2)list))
+	 (LENGTH (L:(real^1->real^1)list))`);;
+		 e (SIMP_TAC [n_order_differentiable_func_list]);;
+
+   e (MATCH_MP_TAC LET_TRANS);;
+		 e (EXISTS_TAC `(x':num)`);;
+		 e (ASM_REWRITE_TAC []);;
+   e (MATCH_MP_TAC LET_TRANS);;
+
+		 e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list) - 1`);;
+   e (ASM_SIMP_TAC []);;
+
+
+   e (ASM_SIMP_TAC[ARITH_RULE `n - 1 < n <=> ~(n = 0)`] );;  
+
+				e (ASM_SIMP_TAC []);;
+
+   e (ASM_REWRITE_TAC []);;
+
+	e (ASM_SIMP_TAC [] THEN POP_ASSUM (K ALL_TAC));;
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx (drop (EL n L x)) *
+	 (Cx (EL (LENGTH C - LENGTH (CONS h t)) C) *
+	  higher_vector_derivative_n n (\x. h x) x +
+	  Cx (&1) * higher_vector_derivative_n n (\x. linear_sol_combin C t x) x) = (Cx (drop (EL n L x)) *
+	 Cx (EL (LENGTH C - LENGTH (CONS h t)) C) *
+	  higher_vector_derivative_n n (\x. h x) x +
+	  Cx (drop (EL n L x)) * Cx (&1) * higher_vector_derivative_n n (\x. linear_sol_combin C t x) x)`]);;	      
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx (drop (EL n L x)) *
+	 Cx (EL (LENGTH C - LENGTH (CONS h t)) C) *
+	 higher_vector_derivative_n n (\x. h x) x = (\n. Cx (drop (EL n L x)) *
+	 Cx (EL (LENGTH C - LENGTH (CONS h t)) C) *
+	 higher_vector_derivative_n n (\x. h x) x) n`]);;
+	e (ONCE_REWRITE_TAC [COMPLEX_RING ` Cx (drop (EL n L x)) *
+	 Cx (&1) *
+	 higher_vector_derivative_n n (\x. linear_sol_combin C t x) x = (\n. Cx (drop (EL n L x)) *
+	 Cx (&1) *
+	 higher_vector_derivative_n n (\x. linear_sol_combin C t x) x) n`]);;
+	e (SIMP_TAC [VSUM_ADD_NUMSEG]);;
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx (drop (EL n L x)) *
+	  Cx (EL (LENGTH C - LENGTH (CONS h t)) C) *
+	  higher_vector_derivative_n n (\x. h x) x = 
+	  Cx (EL (LENGTH C - LENGTH (CONS h t)) C) *Cx (drop (EL n L x)) *
+	  higher_vector_derivative_n n (\x. h x) x`]);;
+	e (SUBGOAL_THEN `FINITE (0..LENGTH (L:(real^1->real^1)list) - 1)`ASSUME_TAC);;
+	  e (SIMP_TAC [FINITE_NUMSEG]);;
+	e (ASM_SIMP_TAC [VSUM_COMPLEX_LMUL]);;
+
+	e (UNDISCH_TAC `n_order_homo_eq_solution_list (CONS h t) L x`);;
+	e (SIMP_TAC [n_order_homo_eq_solution_list]);;
+	e (SIMP_TAC [ndiff_eq_lhs]);;
+	e (ASM_SIMP_TAC [ETA_AX]);;
+	e (REPEAT DISCH_TAC);;
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `(Cx (EL (LENGTH C - LENGTH (CONS h t)) C) * Cx (&0) +
+     vsum (0..LENGTH L -1)
+     (\n. Cx (drop (EL n L x)) *
+	  Cx (&1) *
+	  higher_vector_derivative_n n (linear_sol_combin C t) x)) = (
+     vsum (0..LENGTH L - 1)
+     (\n. Cx (drop (EL n L x)) *
+	  Cx (&1) *
+	  higher_vector_derivative_n n (linear_sol_combin C t) x))`]);;     
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx (drop (EL n L x)) *
+	 Cx (&1) *
+	 higher_vector_derivative_n n (linear_sol_combin C t) x = Cx (drop (EL n L x)) * higher_vector_derivative_n n (linear_sol_combin C t) x`]);;
+
+	e (UNDISCH_TAC `!Yp L L1 y1 x C.
+	     n_order_differentiable_func_list t (LENGTH L) /\
+	     (!m x. (\x. higher_vector_derivative_n m Yp x) differentiable at x) /\
+	     n_order_homo_eq_solution_list t L x /\
+	     n_order_nonhomo_equ_solution L L1 Yp y1 x /\
+	     ~(LENGTH L = 0)
+	     ==> ndiff_eq_lhs L (\x. linear_sol_combin C t x + Yp x) x =
+		 ndiff_eq_rhs12 L1 y1 x `);;
+       e (DISCH_THEN (MP_TAC o ISPECL [`(Yp:(real^1->real^2))`; `(L:(real^1->real^1)list)`;` (L1:(real^1->real^1)list)` ;`(y1:(real^1->real^2)list)`; `(x:real^1)` ;`(C:(real)list)`]));;
+       e (ASM_SIMP_TAC []);;
+       e (UNDISCH_TAC `n_order_differentiable_func_list
+	 (CONS (h:real^1->real^2) (t:(real^1->real^2)list))
+	 (LENGTH (L:(real^1->real^1)list))`);;
+       e (SIMP_TAC [n_order_differentiable_func_list]);;
+       e (DISCH_TAC);;
+       e (SIMP_TAC [ndiff_eq_lhs]);;
+   (**************************************)
+       e (SUBGOAL_THEN `vsum (0..LENGTH L - 1)
+    (\n. Cx (drop (EL n L x)) *
+	 higher_vector_derivative_n n (\x. linear_sol_combin C t x + Yp x) x) = vsum (0..LENGTH L - 1)
+    (\n. Cx (drop (EL n L x)) *
+	 (higher_vector_derivative_n n (\x. linear_sol_combin C t x) x  + higher_vector_derivative_n n (\x. Yp x) x))`ASSUME_TAC);;	    
+	 e (MATCH_MP_TAC VSUM_EQ);;
+	 e (REPEAT STRIP_TAC THEN ASM_SIMP_TAC []);;
+
+	e (ASM_CASES_TAC `(drop (EL (x':num) (L:(real^1->real^1)list) (x:real^1))) = &0`);;
+	e (ASM_REWRITE_TAC []);;
+	e (SIMPLE_COMPLEX_ARITH_TAC);;
+
+	e (SIMP_TAC [COMPLEX_EQ_MUL_LCANCEL]);;
+	e (DISJ2_TAC);;
+
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `linear_sol_combin C t x + Yp x = Cx(&1) * linear_sol_combin C t x + Cx(&1) * Yp x`]);;
+   e (ONCE_REWRITE_TAC [COMPLEX_RING `higher_vector_derivative_n x' (\x. linear_sol_combin C t x) x +
+    higher_vector_derivative_n x' (\x. Yp x) x = Cx(&1) * higher_vector_derivative_n x' (\x. linear_sol_combin C t x) x +
+   Cx(&1) * higher_vector_derivative_n x' (\x. Yp x) x`]);;
+	e (MATCH_MP_TAC N_DERIV_LINEARITY_1);;
+
+	e (UNDISCH_TAC `(x':num) IN 0..LENGTH (L:(real^1->real^1)list) - 1`);;
+	e (SIMP_TAC [IN_NUMSEG]);;
+	e (REPEAT STRIP_TAC);;
+	e (MATCH_MP_TAC N_DERIV_SOLUTION_DIFFERENTIABLE_AT_X);;
+	e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list)`);;
+	e (STRIP_TAC);;
+	e (ASM_SIMP_TAC []);;
+
+	e (MATCH_MP_TAC LET_TRANS);;
+	e (EXISTS_TAC `x':num`);;
+	e (ASM_SIMP_TAC []);;
+   e (MATCH_MP_TAC LET_TRANS);;
+	e (EXISTS_TAC `LENGTH (L:(real^1->real^1)list) - 1`);;
+	e (ASM_SIMP_TAC []);;
+
+
+   e (ASM_SIMP_TAC[ARITH_RULE `n - 1 < n <=> ~(n = 0)`] );;  
+
+				e (ASM_SIMP_TAC []);;
+
+   e (ASM_REWRITE_TAC []);;
+
+       e (UNDISCH_TAC `!m x. (\x. higher_vector_derivative_n m Yp x) differentiable at x`);;
+	e (DISCH_THEN (MP_TAC o SPEC `m:num`));;
+	e (DISCH_THEN (MP_TAC o SPEC `x'':real^1`));;
+	e (SIMP_TAC []);;
+	e (ASM_SIMP_TAC []);;
+	e (POP_ASSUM (K ALL_TAC));;
+
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `(Cx (drop (EL n L x)) *
+	 (higher_vector_derivative_n n (\x. linear_sol_combin C t x) x +
+	  higher_vector_derivative_n n (\x. Yp x) x)) = (Cx (drop (EL n L x)) *
+	 higher_vector_derivative_n n (\x. linear_sol_combin C t x) x +
+	  Cx (drop (EL n L x)) * higher_vector_derivative_n n (\x. Yp x) x)`]);;
+
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx (drop (EL n L x)) *
+	 higher_vector_derivative_n n (\x. linear_sol_combin C t x) x = (\n. Cx (drop (EL n L x)) *
+	 higher_vector_derivative_n n (\x. linear_sol_combin C t x) x) n`]);;
+	e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx (drop (EL n L x)) * higher_vector_derivative_n n (\x. Yp x) x  = (\n. Cx (drop (EL n L x)) * higher_vector_derivative_n n (\x. Yp x) x) n`]);;
+
+	e (ASM_SIMP_TAC [VSUM_ADD_NUMSEG]);;
+	e (ASM_SIMP_TAC [ETA_AX]);;
+
+   let PARTICULAR_SOLUTION_EQUATION = top_thm();;
+
+
+   (*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.**.*.*.*.*.*.*.*.*.*.*.*.*.*.*)
+   (*.*.*.*.*.*.*Heaviside Integral Property*.*..*.*.*.*.*.*.*.*.*.*.*.*)
+   (*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.**.*.*.*.*.*.*.*.*.*.*.*.*.*.*)
+
+
+   let heaviside_function_vector = new_definition 
+		`heaviside_function_vector (x:real^1) = if (drop x) <= &0 then &0 else &1`;;
+
+   g `(!(x:real^1) (y:real^1).
+	  (x:real^1) IN interval [(lift (a:real)), (lift(b:real))] /\
+	  (y:real^1) IN interval [(lift (a:real)), (lift(b:real))] /\
+	  (drop (x:real^1)) <= (drop (y:real^1))
+	  ==> heaviside_function_vector (x:real^1) <= heaviside_function_vector (y:real^1))`;;
+
+   e (REPEAT STRIP_TAC);;
+   e (ASM_SIMP_TAC [heaviside_function_vector]);;
+   e (COND_CASES_TAC);;
+   e (COND_CASES_TAC);;
+   e (ASM_ARITH_TAC);;
+   e (REAL_ARITH_TAC);;
+
+   e (COND_CASES_TAC);;
+   e (UNDISCH_TAC `~(drop (x:real^1) <= &0)`);;
+   e (ONCE_REWRITE_TAC [REAL_NOT_LE]);;
+   e (STRIP_TAC);;
+   e (SUBGOAL_THEN `(drop (y:real^1)) < (drop (x:real^1))`ASSUME_TAC);;
+   e (MATCH_MP_TAC REAL_LET_TRANS);;
+   e (EXISTS_TAC `&0`);;
+   e (ASM_SIMP_TAC []);;
+   e (UNDISCH_TAC `drop (x:real^1) <= drop (y:real^1)`);;
+   e (ONCE_REWRITE_TAC [GSYM REAL_NOT_LT]);;
+   e (ASM_SIMP_TAC []);;
+   e (REAL_ARITH_TAC);;
+
+   let HF_VECTOR_INCREASING = top_thm ();;
+
+
+   g `(!(x:real^1) (y:real^1).
+	  (x:real^1) IN interval [lift (a:real),lift (b:real)] /\
+	  (y:real^1) IN interval [lift (a:real), lift (b:real)] /\
+	   (c:real) IN real_interval [(a:real),(b:real)] /\
+	  (drop (x:real^1)) <= (drop (y:real^1))
+	  ==> heaviside_function_vector ( (lift ((drop (x:real^1)) - c))) <= heaviside_function_vector ((lift ((drop (x:real^1)) - c))))`;;
+
+   g `(!(x:real^1) (y:real^1).
+	  ((x:real^1) IN interval [(lift (a:real)), (lift (b:real))] )/\
+	  ((y:real^1) IN interval [(lift (a:real)), (lift (b:real))]) /\
+	  ( (c:real) IN real_interval [(a:real),(b:real)]) /\
+	  ((drop (x:real^1)) <= (drop (y:real^1)))
+	  ==> heaviside_function_vector ( (lift ((drop (x:real^1)) - c))) <= heaviside_function_vector ((lift ((drop (y:real^1)) - c))))`;;
+
+   e (REPEAT STRIP_TAC);;
+   e (ASM_SIMP_TAC [heaviside_function_vector]);;
+   e (COND_CASES_TAC);;
+   e (COND_CASES_TAC);;
+   e (ASM_ARITH_TAC);;
+   e (REAL_ARITH_TAC);;
+
+   e (COND_CASES_TAC);;
+   e (UNDISCH_TAC `~(drop (lift (drop (x:real^1) - (c:real))) <= &0)`);;
+   e (ASM_REWRITE_TAC [LIFT_DROP]);;
+   e (REWRITE_TAC [REAL_ARITH `~(drop (x:real^1) - (c:real) <= &0) = ~(drop (x:real^1) <=  (c:real))`]);;
+   e (ONCE_REWRITE_TAC [REAL_NOT_LE]);;
+
+   e (UNDISCH_TAC `drop (lift (drop (y:real^1) - (c:real))) <= &0`);;
+   e (ASM_REWRITE_TAC [LIFT_DROP]);;
+
+   e (REWRITE_TAC [REAL_ARITH `( drop (y:real^1) - (c:real) <= &0 ) = (drop (y:real^1) <= (c:real))`]);;
+   e (REPEAT STRIP_TAC);;
+
+   e (SUBGOAL_THEN `(drop (y:real^1)) < (drop (x:real^1))`ASSUME_TAC);;
+   e (MATCH_MP_TAC REAL_LET_TRANS);;
+   e (EXISTS_TAC `c:real`);;
+   e (ASM_SIMP_TAC []);;
+   e (UNDISCH_TAC `drop (x:real^1) <= drop (y:real^1)`);;
+   e (ONCE_REWRITE_TAC [GSYM REAL_NOT_LT]);;
+   e (ASM_SIMP_TAC []);;
+   e (REAL_ARITH_TAC);;
+
+   let H_DELAY_VECTOR_INCREASING = top_thm ();;
+
+(*Theorem 2.1*)
+   g `!(f:real^1->complex) (a:real) (b:real) (c:real).  (!(s:real^1->bool). (\x:real^1. (f:real^1->real^2) ((x:real^1))) differentiable_on
+		  s)  /\ (((c)) IN real_interval [a, b])==> 
+     ( integral (interval [lift(a), lift(b)])  (\x:real^1.  Cx(heaviside_function_vector (lift (drop(x) - c))) * (f ((x))) ) )
+    =
+    (integral (interval [lift(c), lift(b)])  (\x. (f ((x))) ))
+   `;;
+
+   e (REPEAT STRIP_TAC);;
+
+   e (SUBGOAL_THEN `integral (interval [lift (a:real),lift (b:real)])
+    (\x:real^1. Cx
+		  (heaviside_function_vector
+		  (lift (drop (x:real^1) - (c:real)))) *
+		  (f:real^1->real^2) (x:real^1)) = (integral (interval [lift (a:real),lift (c:real)])
+    (\x:real^1. Cx
+		  (heaviside_function_vector
+		  (lift (drop (x:real^1) - (c:real)))) *
+		  (f:real^1->real^2) (x:real^1)))
+   +
+   (integral (interval [lift (c:real),lift (b:real)])
+    (\x:real^1. Cx
+		  (heaviside_function_vector
+		  (lift (drop (x:real^1) - (c:real)))) *
+		  (f:real^1->real^2) (x:real^1)))` ASSUME_TAC);;
+
+   e (MP_TAC(ISPECL [`(\x:real^1. Cx (heaviside_function_vector
+		  (lift (drop (x:real^1) - (c:real)))) *
+		  (f:real^1->real^2) ((x:real^1))) `; 
+		    `lift(a:real)`; `lift(b:real)`; `lift(c)`]
+       INTEGRAL_COMBINE));;
+   e (POP_ASSUM MP_TAC  THEN REWRITE_TAC [IN_REAL_INTERVAL; LIFT_DROP]);;
+   e (ASM_SIMP_TAC []);;
+   e (STRIP_TAC);;
+   e (SUBGOAL_THEN `((\x:real^1. Cx
+		   (heaviside_function_vector
+		   (lift (drop (x:real^1) - (c:real)))) *
+		   (f:real^1->real^2) (x:real^1)) integrable_on
+     interval [lift (a:real),lift (b:real)]) ` ASSUME_TAC);;
+     	      e (ONCE_REWRITE_TAC [GSYM COMPLEX_CMUL]);;
+   	      e(MATCH_MP_TAC INTEGRABLE_INCREASING_PRODUCT);;
+
+   	      e (REPEAT STRIP_TAC);;
+   	      e (MATCH_MP_TAC INTEGRABLE_CONTINUOUS);;
+   	      e (MATCH_MP_TAC PIECEWISE_DIFFERENTIABLE_ON_IMP_CONTINUOUS_ON);;
+
+   	      e (MATCH_MP_TAC DIFFERENTIABLE_ON_IMP_PIECEWISE_DIFFERENTIABLE);;
+   	      e (UNDISCH_TAC `!(s:real^1->bool). (\(x:real^1). (f:real^1->real^2) (x:real^1)) differentiable_on
+			    (s:real^1->bool) `);;
+   			    e (DISCH_THEN (MP_TAC o SPEC `interval [lift (a:real),lift (b:real)]`));;
+   			    e (ASM_REWRITE_TAC [ETA_AX]);;
+
+   			    e (MATCH_MP_TAC H_DELAY_VECTOR_INCREASING);;
+   			    e (ASM_SIMP_TAC []);;
+
+   e (ASM_SIMP_TAC [IN_REAL_INTERVAL]);;
+   e (ONCE_ASM_REWRITE_TAC [EQ_SYM_EQ]);;
+   e (ASM_SIMP_TAC []);;
+   e (ASM_REWRITE_TAC []);;
+   e (SUBGOAL_THEN `integral (interval [lift a,lift c])
+    (\x. Cx (heaviside_function_vector (lift (drop x - c))) * f x) = Cx((&0))` ASSUME_TAC);;
+
+    	 e (MATCH_MP_TAC INTEGRAL_UNIQUE);;
+   	 e (ONCE_REWRITE_TAC [GSYM COMPLEX_VEC_0]);;
+   	 e (MATCH_MP_TAC HAS_INTEGRAL_IS_0);;
+   	 e (REPEAT STRIP_TAC);;
+   	 e (REWRITE_TAC [FUN_EQ_THM]);;
+   	 e (REWRITE_TAC [heaviside_function_vector]);;
+   	 e (COND_CASES_TAC);;
+   	 e (REWRITE_TAC [COMPLEX_RING `Cx (&0) * f (x) = Cx(&0)`]);;
+   	 e (SIMP_TAC [COMPLEX_VEC_0]);;
+   	 e (POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REWRITE_TAC [IN_INTERVAL_1]);;
+   	 e (ASM_SIMP_TAC [LIFT_DROP]);;
+   	 e (REWRITE_TAC [REAL_ARITH `~(drop x - c <= &0) = ~(drop x <= c:real)`]);;
+   	 e (ASM_SIMP_TAC []);;
+   	 e (ASM_REWRITE_TAC []);;
+
+   e (REWRITE_TAC [COMPLEX_RING `Cx (&0) + t:complex = t`]);;
+   e (SUBGOAL_THEN `((\x. Cx (heaviside_function_vector (lift (drop x - c))) * f x)
+   has_integral (integral (interval [lift (c), lift (b:real) ]) (\x:real^1. (f:real^1->complex) x))) (interval [lift (c), lift (b:real)])` ASSUME_TAC);;
+   		e (MATCH_MP_TAC HAS_INTEGRAL_SPIKE_INTERIOR);;
+   		e (EXISTS_TAC `(\x:real^1. (f:real^1->complex) (x))`);;
+   		e (CONJ_TAC);;
+   		e (REPEAT STRIP_TAC);;
+   		e (REWRITE_TAC [FUN_EQ_THM]);;
+   		e (REWRITE_TAC [heaviside_function_vector]);;
+   		e (COND_CASES_TAC);;
+   		e (POP_ASSUM MP_TAC);;
+   		e (POP_ASSUM MP_TAC);;
+   		e (REWRITE_TAC [IN_INTERVAL_1]);;
+   		e (ASM_SIMP_TAC [LIFT_DROP]);;
+   		e (REWRITE_TAC [REAL_ARITH ` ( (drop x - (c:real)) <= &0) = ~(c < drop x)`]);;
+   		e (ASM_SIMP_TAC [LIFT_DROP]);;
+   e (SIMPLE_COMPLEX_ARITH_TAC);;
+   e (MATCH_MP_TAC INTEGRABLE_INTEGRAL);;
+   e (UNDISCH_TAC `!(s:real^1->bool). (\(x:real^1). (f:real->real^2) ((x:real^1))) differentiable_on
+			    (s:real^1->bool)`);;
+   e (DISCH_THEN (MP_TAC o SPEC `(interval [(lift (c)), (lift (b:real))])`));;
+   e (STRIP_TAC);;
+   e (MATCH_MP_TAC INTEGRABLE_CONTINUOUS);;
+   e (MATCH_MP_TAC PIECEWISE_DIFFERENTIABLE_ON_IMP_CONTINUOUS_ON);;
+
+   e (MATCH_MP_TAC DIFFERENTIABLE_ON_IMP_PIECEWISE_DIFFERENTIABLE);;
+   e (ASM_SIMP_TAC []);;
+   e (MATCH_MP_TAC INTEGRAL_UNIQUE);;
+   e (ASM_SIMP_TAC []);;
+
+   let HEAVISIDE_INTEGRAL_LIMIT = top_thm ();;
+
+   g `!(f:real^1->complex) (a:real) (b:real) (c1:real) (c2:real).  (!(s:real^1->bool). (\x:real^1. (f:real^1->real^2) ((x:real^1))) differentiable_on
+		  s)  /\ (((c1)) IN real_interval [a, b]) /\
+   (((c2)) IN real_interval [a, b])==> 
+     ( integral (interval [lift(a), lift(b)])  (\x:real^1.  Cx(heaviside_function_vector (lift (drop(x) - c1))) * (f ((x))) + Cx(heaviside_function_vector (lift (drop(x) - c2))) * (f ((x)))) )
+    =
+    ((integral (interval [lift(c1), lift(b)])  (\x. (f ((x))) )) + (integral (interval [lift(c2), lift(b)])  (\x. (f ((x))) )))
+   `;;
+   e (REPEAT STRIP_TAC);;
+   e (SUBGOAL_THEN `integral (interval [lift a,lift b])
+    (\x. Cx (heaviside_function_vector (lift (drop x - c1))) * f x +
+	 Cx (heaviside_function_vector (lift (drop x - c2))) * f x) = integral (interval [lift a,lift b])
+    (\x. Cx (heaviside_function_vector (lift (drop x - c1))) * f x) + integral (interval [lift a,lift b])
+	 (\x. Cx (heaviside_function_vector (lift (drop x - c2))) * f x)` ASSUME_TAC);;
+   e (MATCH_MP_TAC INTEGRAL_ADD);;
+   e (CONJ_TAC);;
+   e (ONCE_REWRITE_TAC [GSYM COMPLEX_CMUL]);;
+   e (MATCH_MP_TAC INTEGRABLE_INCREASING_PRODUCT);;
+
+   e (REPEAT STRIP_TAC);;
+   e (MATCH_MP_TAC INTEGRABLE_CONTINUOUS);;
+   e (MATCH_MP_TAC PIECEWISE_DIFFERENTIABLE_ON_IMP_CONTINUOUS_ON);;
+
+   e (MATCH_MP_TAC DIFFERENTIABLE_ON_IMP_PIECEWISE_DIFFERENTIABLE);;
+   e (UNDISCH_TAC `!(s:real^1->bool). (\(x:real^1). (f:real^1->real^2) (x:real^1)) differentiable_on
+			    (s:real^1->bool) `);;
+   e (DISCH_THEN (MP_TAC o SPEC `interval [lift (a:real),lift (b:real)]`));;
+   e (ASM_REWRITE_TAC [ETA_AX]);;
+
+   e (MATCH_MP_TAC H_DELAY_VECTOR_INCREASING);;
+   e (ASM_SIMP_TAC []);;
+
+   e (ONCE_REWRITE_TAC [GSYM COMPLEX_CMUL]);;
+   e(MATCH_MP_TAC INTEGRABLE_INCREASING_PRODUCT);;
+
+   e (REPEAT STRIP_TAC);;
+   e (MATCH_MP_TAC INTEGRABLE_CONTINUOUS);;
+   e (MATCH_MP_TAC PIECEWISE_DIFFERENTIABLE_ON_IMP_CONTINUOUS_ON);;
+
+   e (MATCH_MP_TAC DIFFERENTIABLE_ON_IMP_PIECEWISE_DIFFERENTIABLE);;
+   e (UNDISCH_TAC `!(s:real^1->bool). (\(x:real^1). (f:real^1->real^2) (x:real^1)) differentiable_on
+			    (s:real^1->bool) `);;
+   e (DISCH_THEN (MP_TAC o SPEC `interval [lift (a:real),lift (b:real)]`));;
+   e (ASM_REWRITE_TAC [ETA_AX]);;
+
+   e (MATCH_MP_TAC H_DELAY_VECTOR_INCREASING);;
+   e (ASM_SIMP_TAC []);;
+
+   e (ASM_REWRITE_TAC []);;
+
+   e (SUBGOAL_THEN `(integral (interval [lift a,lift b])
+    (\x. Cx (heaviside_function_vector (lift (drop x - c1))) * f x)) = (integral (interval [lift c1,lift b]) (\x. f x))` ASSUME_TAC);;
+    	 e (MATCH_MP_TAC HEAVISIDE_INTEGRAL_LIMIT);;
+   	 e (ASM_SIMP_TAC []);;
+   	 e (ASM_REWRITE_TAC []);;
+
+   e (SUBGOAL_THEN `(integral (interval [lift a,lift b])
+    (\x. Cx (heaviside_function_vector (lift (drop x - c2))) * f x)) = (integral (interval [lift c2,lift b]) (\x. f x))` ASSUME_TAC);;
+    	 e (MATCH_MP_TAC HEAVISIDE_INTEGRAL_LIMIT);;
+   	 e (ASM_SIMP_TAC []);;
+   	 e (ASM_REWRITE_TAC []);;
+
+   let HEAVISIDE_INTEGRAL_ADD = top_thm ();;
