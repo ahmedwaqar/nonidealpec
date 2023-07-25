@@ -1,0 +1,1537 @@
+  (* ================================================================== *)
+  (* File Name  : Formal Periodic Steady-State Analysis of Non-Ideal PC *)
+  (* Description: Definitions and Theorems                              *)
+  (*								        *)
+  (*                                                                    *)
+  (*          	    (c) Asad Ahmed				        *)
+  (*                                                                    *)        
+  (*                    Email:asad.ahmed@seecs.edu.pk                   *)
+  (*                    DATE: 03 June 2021                               *)
+  (*                                                                    *)
+  (*	                                                                *)
+  (*                System Analysis & Verification (SAVE) Lab           *)
+  (*           National University of Science and Technology (NUST),    *)
+  (*                    Islamabad, Pakistan.                            *)
+  (* =======================A Short Note=============================== *)
+  (* Type "Definition\Theorem (no. in paper)" in the search bar to reach*)
+  (* the formalization in the document.                                 *)
+  (* To run this file first running "Relatedformalization" file is      *)
+  (* mendatory.                                                         *)
+  (* ================================================================== *)
+  #use "hol.ml";;
+  needs "Multivariate/realanalysis.ml";;
+  needs "Multivariate/derivatives.ml";;
+  needs "Multivariate/cauchy.ml";;
+  needs "Multivariate/topology.ml";;
+
+
+   (*-Definition 3.11-*)
+   let nideal_diff_equations = 
+   new_definition
+   `nideal_diff_equations
+    (a1:real) (b1:real)   (a2:real) (b2:real) (y:real^1->real^2) 
+   (t_on:real) (t:real^1) =
+   if (drop (t) < (t_on)) then
+       (
+     ndiff_eq_lhs [(\t. lift (a1)); 
+	   	   (\t.lift ((&1)))] (\t. y t) t = 
+	      (ndiff_eq_rhs12 [(\t. lift ((b1)))] [(\t. Cx(&1))] t)) 
+	   else
+	       (ndiff_eq_lhs [(\t. lift (a2)); 
+	   	   (\t.lift ((&1)))] (\t. y t) t = 
+	      (ndiff_eq_rhs12 [(\t. lift ((b2)))] [(\t. Cx(&1))] t))`;;
+	      
+  (*-Definition 2.1 (Table 3)-*)
+  let single_switch_status_h_10 = 
+
+new_definition `single_switch_status_h_10
+ (t:real)  =
+    if  (( (t) < (&0)) ) 
+     then (&1) else if t = &0 then ((&1) / (&2) ) 
+    else (&0) 
+ `;;
+
+
+  (*-Definition 3.12-*)
+  let solution = new_definition 
+    `solution  (c1:real)  (c2:real) (t_on:real) (s1:real) (s2:real) (cnst1:real) (cnst2:real) (x:real^1)= (((linear_sol_combin 
+	      [c1] 
+	      (cexp_list [Cx (s1)]) (x)) + Cx(cnst1) ) * (Cx ( single_switch_status_h_10 (drop x - t_on))) + (((linear_sol_combin 
+	      [c2] 
+	      (cexp_list [ Cx(s2)]) (x - lift (t_on)) ) + Cx(cnst2) ) ) * (Cx (&1 - single_switch_status_h_10 (drop x - t_on)))) `;;
+
+
+  (*-Theorem 3.3-*)	       
+   g `!(y:real^1->real^2) (t_on:real) (a1:real) (cnst1:real) (cnst2:real) (c1:real) (c2:real) (s1:real) (s2:real) (t:real^1).
+	   (t IN interval (lift(&0), lift(Tp)) ) /\
+	   (~ ((drop t) = t_on)) /\
+	   ~(a1 = &0) /\
+	   ~(a2 = &0) /\
+	   (!t. (&0 <= drop t) /\ ~(drop t = t_on) 
+	   ==> y =
+		 (\x. ((linear_sol_combin [c1] 
+		       (cexp_list [Cx (--(a1) )]) x +
+			Cx ((b1/a1))) *
+		      (Cx (single_switch_status_h_10 (drop t - t_on))) +
+		       (linear_sol_combin 
+		 [c2] 
+		 (cexp_list [Cx ( --(a2))]) x  + Cx (b2/a2) ) *
+		       Cx (&1 - single_switch_status_h_10 (drop t - t_on)))))
+	    ==> nideal_diff_equations a1 b1 a2 b2 y t_on t`;;
+	    
+	    e (REWRITE_TAC [nideal_diff_equations]);;
+   e (REPEAT STRIP_TAC);;
+   e (COND_CASES_TAC);;
+
+
+   e (SUBGOAL_THEN `!t. (&0 <= drop t) /\((drop t) < t_on) 
+          ==> y = (\x. (linear_sol_combin [c1]
+                    (cexp_list [Cx (--a1)])
+                    x +
+                    Cx (b1/a1)))
+		 ` ASSUME_TAC);;
+   e (REPEAT STRIP_TAC);;
+   e (UNDISCH_TAC `!t. &0 <= drop t /\ ~(drop t = t_on)
+          ==> y =
+              (\x. (linear_sol_combin [c1] (cexp_list [Cx (--a1)]) x +
+                    Cx (b1 / a1)) *
+                   Cx (single_switch_status_h_10 (drop t - t_on)) +
+                   (linear_sol_combin [c2] (cexp_list [Cx (--a2)]) x +
+                    Cx (b2 / a2)) *
+                   Cx (&1 - single_switch_status_h_10 (drop t - t_on)))`);;
+   e (DISCH_THEN (MP_TAC o SPEC `t':real^1`));;
+   e (ASM_SIMP_TAC []);;
+   e (ASM_SIMP_TAC [REAL_NOT_EQ]);;
+   e (DISCH_TAC);;
+   e (ONCE_REWRITE_TAC [FUN_EQ_THM]);;
+   e (REPEAT STRIP_TAC);;
+   e (ASM_SIMP_TAC [ETA_AX]);;
+   e (ASM_SIMP_TAC [single_switch_status_h_10]);;
+   e (COND_CASES_TAC);;
+   e (REWRITE_TAC [REAL_ARITH `  (&1 - &1) =
+				(&0)`]);;
+   e (REWRITE_TAC [COMPLEX_RING ` a * Cx(&0) =
+				Cx(&0)`]);;
+   e (REWRITE_TAC [COMPLEX_RING ` a  + b * Cx(&1) + Cx(&0)=
+				a + b`]);;
+e (ASM_SIMP_TAC [COMPLEX_RING `((a:complex) + b) * Cx (&1) +
+ Cx (&0) = ((a:complex) + b) `]);;
+ 
+   e (POP_ASSUM MP_TAC);;
+   e (REWRITE_TAC [REAL_ARITH `(drop t' - t_on < &0) = 
+   drop t' < t_on  `]);;
+   e (ASM_SIMP_TAC []);;
+   e (POP_ASSUM MP_TAC THEN DISCH_THEN (MP_TAC o SPEC `t:real^1`));;
+   e (ASM_SIMP_TAC []);;
+   e (UNDISCH_TAC `t IN interval (lift (&0),lift Tp)`);;
+   e (ASM_SIMP_TAC [IN_INTERVAL_1; LIFT_DROP]);;
+   e (ASM_SIMP_TAC [REAL_LE_LT]);;
+   e (DISCH_TAC);;
+   e (DISCH_TAC);;
+
+   e (POP_ASSUM (K ALL_TAC));;
+   e (REPEAT STRIP_TAC);;
+
+
+
+   e (MATCH_MP_TAC PARTICULAR_SOLUTION_EQUATION);;
+   e (SIMP_TAC [LENGTH]);;
+
+   e (SIMP_TAC [ARITH]);;
+   e (CONJ_TAC);;
+   e (ASM_SIMP_TAC [cexp_list]);;
+
+   e (ASM_SIMP_TAC [n_order_differentiable_func_list]);;
+   e (REPEAT STRIP_TAC);;
+   e (ASM_SIMP_TAC [NORDER_DERIVATIVE_CEXP_DIFFERENTIABLE_AT]);;
+   e (SIMP_TAC [NORDER_DERIVATIVE_CEXP_DIFFERENTIABLE_AT]);;
+
+   e (CONJ_TAC);;
+   e (SUBGOAL_THEN `!m t.
+     (\x. higher_vector_derivative_n m (\t. Cx (b1/a1)) x) differentiable
+     at t`ASSUME_TAC);;
+     (*e (ONCE_REWRITE_TAC [real_div]);;*)
+   e (INDUCT_TAC);;
+   e (ASM_SIMP_TAC [higher_vector_derivative_n]);;
+   e (ASM_SIMP_TAC [DIFFERENTIABLE_CONST]);;
+   e (ASM_SIMP_TAC [higher_vector_derivative_n]);;
+   e (SUBGOAL_THEN `(!x.  vector_derivative (\t. Cx (b1/a1)) (at x)   = Cx(&0))`ASSUME_TAC);;
+        (*e (ONCE_REWRITE_TAC [real_div]);;*)
+
+	   e (GEN_TAC);;
+	   e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+	   e (SIMP_TAC [GSYM COMPLEX_VEC_0]);;
+	   e (SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+
+	   e (ASM_SIMP_TAC []);;
+	   e (ASM_REWRITE_TAC []);;
+
+	   e (ASM_SIMP_TAC [NORDER_HIGHER_VECTOR_DERIVATIVE_0]);;
+   e (ASM_SIMP_TAC [DIFFERENTIABLE_CONST]);;
+	   e (ASM_SIMP_TAC []);;
+   e (CONJ_TAC);;
+	   e (ASM_SIMP_TAC [cexp_list; n_order_homo_eq_solution_list]);;
+   (*e (CONJ_TAC);;*)
+   e (ASM_SIMP_TAC [HOMO_NDIFF_CEXP_EQ]);;
+   e (ASM_SIMP_TAC [LENGTH]);;
+   
+   e (ASM_SIMP_TAC [ARITH]);;
+   e (SIMP_TAC [ONE]);;
+   e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+   e (SIMP_TAC [EL; HD]);;
+   e (SIMP_TAC [ARITH]);;
+   e (SIMP_TAC [EL; HD;TL]);;
+
+   e (ONCE_REWRITE_TAC [GSYM CX_POW]);;
+   e (SIMP_TAC [REAL_POW_1]);;
+   e (REWRITE_TAC [REAL_ARITH `(a:real) pow 0 = &1`]);;
+   e (ONCE_REWRITE_TAC [LIFT_DROP]);;
+   e (SIMP_TAC [COMPLEX_RING `a * Cx(&1) = a`]);;
+   e (SIMP_TAC [COMPLEX_RING ` Cx(&1) * a = a`]);;
+   e (ONCE_REWRITE_TAC [GSYM CX_ADD]);;
+   e (SIMP_TAC [REAL_ARITH ` (a + --a) = (&0)`]);;
+   e (SIMP_TAC [COMPLEX_RING `a * Cx(&0) = Cx(&0)`]);;
+
+
+   e (ONCE_REWRITE_TAC [n_order_nonhomo_equ_solution]);;
+   e (ONCE_REWRITE_TAC [ndiff_eq_lhs; ndiff_eq_rhs12]);;
+   e (SIMP_TAC [LENGTH; ARITH]);;
+   (*e (SIMP_TAC [TWO; VSUM_CLAUSES_NUMSEG]);;*)
+   e (SIMP_TAC [ONE; VSUM_CLAUSES_NUMSEG]);;
+   e (SIMP_TAC [EL; HD; TL; ARITH]);;
+   e (SIMP_TAC [ONE; higher_vector_derivative_n]);;
+   e (SIMP_TAC [ARITH; LIFT_DROP]);;
+   e (SIMP_TAC [COMPLEX_RING `Cx(&1) * a = a`]);;
+
+   e (SUBGOAL_THEN `!t. vector_derivative (\t. Cx (b1/a1)) (at t) = Cx(&0)` ASSUME_TAC);;
+   
+   e (STRIP_TAC);;
+   e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+   e (SIMP_TAC [GSYM COMPLEX_VEC_0; HAS_VECTOR_DERIVATIVE_CONST]);;
+   e (ASM_SIMP_TAC []);;
+   e (SIMP_TAC [COMPLEX_RING `(a + Cx(&0) = a) /\ (a * Cx(&1) = a)`]);;
+   e (SIMP_TAC [GSYM CX_MUL]);;
+   e (SIMP_TAC [CX_INJ]);;
+   e (SIMP_TAC [real_div]);;
+   e (SIMP_TAC [REAL_ARITH `((a1:real) * b1 * inv a1) = ( b1 * (a1 * (inv a1)))`]);;
+   e (SUBGOAL_THEN `(a1 * inv a1) = (&1)` ASSUME_TAC);;
+   e (MATCH_MP_TAC REAL_MUL_RINV);;
+        e (ASM_SIMP_TAC []);;
+
+   e (ASM_SIMP_TAC [REAL_ARITH `b1 * &1 = b1`]);;
+
+   (***************2nd equation**************)
+    e (POP_ASSUM MP_TAC THEN SIMP_TAC [REAL_NOT_LT; REAL_LE_LT] THEN STRIP_TAC );;
+   (*e (SIMP_TAC [ndiff_eq_rhs12]);;*)
+
+  (* e (SIMP_TAC [LENGTH; ARITH; VSUM_CLAUSES_NUMSEG; EL; HD; LIFT_DROP; ARITH]);;*)
+   (*e (ONCE_REWRITE_TAC [GSYM CX_MUL]);;*)
+   (*e (REWRITE_TAC [REAL_ARITH `((a * &1)) = (a)`]);;*)
+   e (ONCE_REWRITE_TAC [ETA_AX]);;
+   e (UNDISCH_TAC `!t. &0 <= drop t /\ ~(drop t = t_on)
+          ==> y =
+              (\x. (linear_sol_combin [c1] (cexp_list [Cx (--a1)]) x +
+                    Cx (b1 / a1)) *
+                   Cx (single_switch_status_h_10 (drop t - t_on)) +
+                   (linear_sol_combin [c2] (cexp_list [Cx (--a2)]) x +
+                    Cx (b2 / a2)) *
+                   Cx (&1 - single_switch_status_h_10 (drop t - t_on)))`);;
+   e (DISCH_THEN (MP_TAC o SPEC `t:real^1`));;
+   e (ASM_SIMP_TAC []);;
+   e (ASM_SIMP_TAC [REAL_LE_LT]);;
+ e (UNDISCH_TAC `t IN interval (lift (&0),lift Tp)`);;
+   e (ASM_SIMP_TAC [IN_INTERVAL_1; LIFT_DROP]);;
+   e (ASM_SIMP_TAC [REAL_LE_LT]);;
+   e (ASM_SIMP_TAC []);;
+   e (DISCH_TAC);;
+   e (DISCH_TAC);;
+
+   e (ONCE_REWRITE_TAC [single_switch_status_h_10]);;
+   
+   e (SUBGOAL_THEN `~(drop t - t_on < &0)`ASSUME_TAC);;
+   e (ASM_SIMP_TAC [REAL_NOT_LT; REAL_LE_LT]);;
+   e (SIMP_TAC [REAL_ARITH `(&0 < a - b) = (b < a )`]);;
+   e (ASM_SIMP_TAC []);;
+
+   e (SIMP_TAC [REAL_ARITH `(a - b = &0) = (a = b)`]);;
+   e (ASM_SIMP_TAC []);;
+
+   e (SIMP_TAC [REAL_ARITH `(&1 - &1) = (&0)`]);;
+
+   e (SIMP_TAC [COMPLEX_RING `(a * Cx(&0)) = (Cx(&0))`]);;
+   e (SIMP_TAC [COMPLEX_RING `(a * Cx(&1) + Cx(&0)) = (a)`]);;
+   e (SIMP_TAC [REAL_ARITH `(&1 - &0) = (&1)`]);;
+   e (SIMP_TAC [COMPLEX_RING `(Cx(&0) + a * Cx(&1)) = (a)`]);;
+
+   
+
+
+
+   e (MATCH_MP_TAC PARTICULAR_SOLUTION_EQUATION);;
+   e (SIMP_TAC [LENGTH]);;
+
+   e (SIMP_TAC [ARITH]);;
+   e (CONJ_TAC);;
+   e (ASM_SIMP_TAC [cexp_list]);;
+
+   e (ASM_SIMP_TAC [n_order_differentiable_func_list]);;
+   e (REPEAT STRIP_TAC);;
+   e (ASM_SIMP_TAC [NORDER_DERIVATIVE_CEXP_DIFFERENTIABLE_AT]);;
+   e (SIMP_TAC [NORDER_DERIVATIVE_CEXP_DIFFERENTIABLE_AT]);;
+
+   e (CONJ_TAC);;
+   e (SUBGOAL_THEN `!m t.
+     (\x. higher_vector_derivative_n m ((\x. Cx (b2 / a2 ))) x) differentiable
+     at t `ASSUME_TAC);;
+   e (INDUCT_TAC);;
+   e (ASM_SIMP_TAC [higher_vector_derivative_n]);;
+   e (ASM_SIMP_TAC [DIFFERENTIABLE_CONST]);;
+   e (ASM_SIMP_TAC [higher_vector_derivative_n]);;
+   e (SUBGOAL_THEN `(!x.  vector_derivative ((\t. Cx (b2 / a2))) (at x)   = Cx(&0))`ASSUME_TAC);;
+	   e (GEN_TAC);;
+	   e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+	   e (SIMP_TAC [GSYM COMPLEX_VEC_0]);;
+	   e (SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+
+	   e (ASM_SIMP_TAC []);;
+	   e (ASM_REWRITE_TAC []);;
+
+	   e (ASM_SIMP_TAC [NORDER_HIGHER_VECTOR_DERIVATIVE_0]);;
+   e (ASM_SIMP_TAC [DIFFERENTIABLE_CONST]);;
+	   e (ASM_SIMP_TAC []);;
+   e (CONJ_TAC);;
+	   e (ASM_SIMP_TAC [cexp_list; n_order_homo_eq_solution_list]);;
+   (*e (CONJ_TAC);;*)
+   e (ASM_SIMP_TAC [HOMO_NDIFF_CEXP_EQ]);;
+   e (ASM_SIMP_TAC [LENGTH]);;
+   
+   e (ASM_SIMP_TAC [ARITH]);;
+   e (SIMP_TAC [ONE]);;
+   e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+   e (SIMP_TAC [EL; HD]);;
+   e (SIMP_TAC [ARITH]);;
+   e (SIMP_TAC [EL; HD;TL]);;
+
+   
+   e (ONCE_REWRITE_TAC [GSYM CX_POW]);;
+   e (SIMP_TAC [REAL_POW_1]);;
+   e (REWRITE_TAC [REAL_ARITH `(a:real) pow 0 = &1`]);;
+   e (ONCE_REWRITE_TAC [LIFT_DROP]);;
+   e (SIMP_TAC [COMPLEX_RING `a * Cx(&1) = a`]);;
+   e (SIMP_TAC [COMPLEX_RING ` Cx(&1) * a = a`]);;
+   e (ONCE_REWRITE_TAC [GSYM CX_ADD]);;
+   e (SIMP_TAC [REAL_ARITH ` (a + --a) = (&0)`]);;
+   e (SIMP_TAC [COMPLEX_RING `a * Cx(&0) = Cx(&0)`]);;
+
+
+   e (ONCE_REWRITE_TAC [n_order_nonhomo_equ_solution]);;
+   e (ONCE_REWRITE_TAC [ndiff_eq_lhs; ndiff_eq_rhs12]);;
+   e (SIMP_TAC [LENGTH; ARITH]);;
+   (*e (SIMP_TAC [TWO; VSUM_CLAUSES_NUMSEG]);;*)
+   e (SIMP_TAC [ONE; VSUM_CLAUSES_NUMSEG]);;
+   e (SIMP_TAC [EL; HD; TL; ARITH]);;
+   e (SIMP_TAC [ONE; higher_vector_derivative_n]);;
+   e (SIMP_TAC [ARITH; LIFT_DROP]);;
+   e (SIMP_TAC [COMPLEX_RING `Cx(&1) * a = a`]);;
+
+   e (SUBGOAL_THEN `!t. vector_derivative (\t. Cx (b2 / a2)) (at t) = Cx(&0)` ASSUME_TAC);;
+   
+   e (STRIP_TAC);;
+   e (MATCH_MP_TAC VECTOR_DERIVATIVE_AT);;
+   e (SIMP_TAC [GSYM COMPLEX_VEC_0; HAS_VECTOR_DERIVATIVE_CONST]);;
+   e (ASM_SIMP_TAC []);;
+   e (SIMP_TAC [COMPLEX_RING `(a + Cx(&0) = a) /\ (a * Cx(&1) = a)`]);;
+   e (SIMP_TAC [GSYM CX_MUL]);;
+   e (SIMP_TAC [CX_INJ]);;
+   e (SIMP_TAC [real_div]);;
+   e (SIMP_TAC [REAL_ARITH `((a2:real) * b2 * inv a2) = ( b2 *  (a2 * inv a2) )`]);;
+   e (SUBGOAL_THEN `(a2 * inv a2 ) = (&1)` ASSUME_TAC);;
+   e (MATCH_MP_TAC REAL_MUL_RINV);;
+   e (ASM_SIMP_TAC []);;
+   e (ASM_SIMP_TAC []);;
+   e (ASM_SIMP_TAC [REAL_ARITH `b2 * &1 = b2`]);;
+
+   e (UNDISCH_TAC `~(drop t = t_on)`);;
+   e (ASM_SIMP_TAC [EQ_SYM_EQ]);;
+
+   let NONIDEAL_PC_SOLUTION = top_thm ();;
+(**********************************************)
+(**********************Limits******************)
+(**********************************************)
+
+
+(*****************limt ==> left limit**(AT)*****)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N). ((f --> l) (at a )) ==> 
+(f --> l) (at a within {x | drop x <= drop a})`;;
+
+e (MESON_TAC [TWO_SIDED_LIMIT_AT]);;
+
+let LIM_IMP_LEFT_LIM = top_thm();;
+
+
+(*****************left limit unique**(AT)*****)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N) (l':real^N). 
+ (~trivial_limit (at a within  {x | drop x <= drop a}) ) /\ (f --> l) (at a within  {x | drop x <= drop a}) /\ (f --> l') (at a within  {x | drop x <= drop a}) ==> 
+l = l'`;;
+
+e (REWRITE_TAC[GSYM LIMIT_EUCLIDEAN; GSYM MTOPOLOGY_EUCLIDEAN_METRIC] THEN
+  REWRITE_TAC[LIMIT_METRIC_UNIQUE]);;
+let LEFT_LIM_UNIQUE = top_thm();;
+
+
+(*****************limt ==> right limit**(AT)*****)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N). ((f --> l) (at a )) ==> 
+(f --> l) (at a within {x | drop a <= drop x})`;;
+
+e (MESON_TAC [TWO_SIDED_LIMIT_AT]);;
+
+let LIM_IMP_RIGHT_LIM = top_thm();;
+
+
+(*****************right limit unique**(AT)*****)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N) (l':real^N). 
+ (~trivial_limit (at a within  {x | drop a <= drop x}) ) /\ (f --> l) (at a within  {x | drop a <= drop x}) /\ (f --> l') (at a within  {x | drop a <= drop x}) ==> 
+l = l'`;;
+
+e (REWRITE_TAC[GSYM LIMIT_EUCLIDEAN; GSYM MTOPOLOGY_EUCLIDEAN_METRIC] THEN
+  REWRITE_TAC[LIMIT_METRIC_UNIQUE]);;
+let RIGHT_LIM_UNIQUE = top_thm();;
+
+
+(**right limit and left limit at point same for continuous funciton(AT)**)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N) (l':real^N). 
+ (~trivial_limit (at a within  {x | drop a <= drop x}) ) /\ (f --> l) (at a within  {x | drop a <= drop x}) /\ (f --> l') (at a within  {x | drop x <= drop a}) ==> 
+l = l'`;;
+e (REPEAT STRIP_TAC);;
+e (MATCH_MP_TAC LIM_UNIQUE);;
+e (EXISTS_TAC `at (a:real^1) within (:real^N)`);;
+e (REWRITE_TAC[GSYM LIMIT_EUCLIDEAN; GSYM MTOPOLOGY_EUCLIDEAN_METRIC] THEN
+  REWRITE_TAC[LIMIT_METRIC_UNIQUE]);;
+let RIGHT_LIM_LEFT_LIM_UNIQUE = top_thm();;
+
+e (EXISTS_TAC `at (vec 1:real^1) within interval(vec 0,vec 1)`);;
+e (EXISTS_TAC `(at a within  {x | drop a <= drop x})`);;
+
+(*****************limt ==> right limit**(within)*****)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N). ((f --> l) (at a within s)) ==> 
+(f --> l) (at a within s INTER {x | drop a <= drop x})`;;
+
+e (MESON_TAC [TWO_SIDED_LIMIT_WITHIN]);;
+
+let LIM_IMP_RIGHT_LIM_WITHIN = top_thm();;
+
+
+(*****************limt ==> left limit**(within)*****)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N). ((f --> l) (at a within s)) ==> 
+(f --> l) (at a within s INTER {x | drop x <= drop a})`;;
+
+e (MESON_TAC [TWO_SIDED_LIMIT_WITHIN]);;
+
+let LIM_IMP_LEFT_LIM_WITHIN = top_thm();;
+
+(*****************right limit unique**(within)*****)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N) (l':real^N). 
+ (~trivial_limit (at a within s INTER {x | drop a <= drop x}) ) /\ (f --> l) (at a within s INTER {x | drop a <= drop x}) /\ (f --> l') (at a within s INTER {x | drop a <= drop x}) ==> 
+l = l'`;;
+
+e (REWRITE_TAC[GSYM LIMIT_EUCLIDEAN; GSYM MTOPOLOGY_EUCLIDEAN_METRIC] THEN
+  REWRITE_TAC[LIMIT_METRIC_UNIQUE]);;
+let RIGHT_LIM_UNIQUE_WITHIN = top_thm();;
+
+(*****************LEFT limit unique**(within)*****)
+
+g `!(f:real^1->real^N) (s:real^1->bool) (a:real^1) (l:real^N) (l':real^N). 
+ (~trivial_limit (at a within s INTER {x | drop x <= drop a}) ) /\ (f --> l) (at a within s INTER {x | drop x <= drop a}) /\ (f --> l') (at a within s INTER {x | drop x <= drop a}) ==> 
+l = l'`;;
+
+e (REWRITE_TAC[GSYM LIMIT_EUCLIDEAN; GSYM MTOPOLOGY_EUCLIDEAN_METRIC] THEN
+  REWRITE_TAC[LIMIT_METRIC_UNIQUE]);;
+let LEFT_LIM_UNIQUE_WITHIN = top_thm();;
+
+(***********************************************************)
+(*******exp function left limit***(AT)***)
+
+
+
+
+g `!(l:complex) (A:complex).  (((\x. A * cexp (l * Cx(drop (x)))) --> A) (at (lift (&0)) within {x| (drop x) <= (&0)}) )`;;
+e (REPEAT STRIP_TAC );;
+e (MATCH_MP_TAC LIM_AT_WITHIN);;
+e (MATCH_MP_TAC LIM_CONTINUOUS_SELF_AT);;
+
+e (SIMP_TAC [ETA_AX; LIFT_DROP]);;
+e (SIMP_TAC [COMPLEX_RING `(l * Cx (&0)) = (Cx(&0))`; CEXP_0]);;
+e (SIMP_TAC [COMPLEX_RING `(A * Cx (&1)) = (A)`]);;
+(*****************************************)
+ e (MATCH_MP_TAC CONTINUOUS_COMPLEX_MUL);;
+e (SIMP_TAC [CONTINUOUS_CONST]);;
+e (SIMP_TAC [CONTINUOUS_AT_CEXP]);;
+e (MATCH_MP_TAC DIFFERENTIABLE_IMP_CONTINUOUS_AT);;
+e (SIMP_TAC [differentiable]);;
+e (EXISTS_TAC `((\x:real^1. (drop x ) %  ((l) * (
+                                      cexp
+                                      ((\x. (l:real^2) * Cx (drop x)) (lift (&0))) )))) `);;
+e (MP_TAC (ISPECL
+     [` (\x. cexp (l * Cx (drop x))) `;
+      `((l) * (
+                                      cexp
+                                      ((\x. (l:real^2) * Cx (drop x)) (lift (&0))) ))  `;
+      `(at (lift (&0)))`] (GSYM has_vector_derivative)) ) ;;
+e (ASM_SIMP_TAC [EQ_SYM_EQ]);;
+e (ASM_REWRITE_TAC []);;
+e (REPEAT STRIP_TAC);;
+e (POP_ASSUM (K ALL_TAC));;
+e (ONCE_REWRITE_TAC [prove ( `  ((\x. cexp (l * Cx (drop x))) =
+ ((\x. cexp ((\x. (l * Cx (drop x))) x)))) `, MESON_TAC [ETA_AX] ) ]);;
+e (SUBGOAL_THEN `(cexp (l * Cx (drop (lift (&0)))))  =
+ (cexp ((\x. l * Cx (drop (x))) (lift (&0))))` ASSUME_TAC);;
+e (SIMP_TAC [ETA_AX]);;
+e (PURE_ASM_REWRITE_TAC []);;
+e (MATCH_MP_TAC CEXP_DERIV_AT);;
+
+     e ( MP_TAC(ISPECL
+   [`( * ):complex->complex->complex`; `(\x:real^1. (l:complex) )`;
+    `\x. Cx(drop x)`; `Cx(&0)`; `Cx(&1)`] HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+
+    e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+    e (REWRITE_TAC[GSYM COMPLEX_VEC_0]);;
+    e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+    e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_ID]);;
+
+e (SUBGOAL_THEN `(\x. Cx (drop x)) = 
+      	Cx o (\x . x) o drop` ASSUME_TAC);;
+   	e (SIMP_TAC [o_DEF]);;
+   	e (ONCE_ASM_REWRITE_TAC []);;
+   e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+   e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+   e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+   e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+
+
+    e (REWRITE_TAC[COMPLEX_RING `(l * Cx (&1) + Cx (&0) * Cx (drop x)) = (l)`]);;
+
+e (DISCH_THEN (MP_TAC o SPEC `(lift (&0))`));;
+e (ASM_SIMP_TAC []);;
+
+let CEXP_LIM_AT_LEFT_0 = top_thm ();;
+
+
+
+(***********************************************************)
+(*******exp function limit***(AT &0)***)
+
+
+
+
+g `!(l:complex) (A:complex).  (((\x. A * cexp (l * Cx(drop (x)))) --> A) (at (lift (&0))) )`;;
+e (REPEAT STRIP_TAC );;
+e (MATCH_MP_TAC LIM_CONTINUOUS_SELF_AT);;
+
+e (SIMP_TAC [ETA_AX; LIFT_DROP]);;
+e (SIMP_TAC [COMPLEX_RING `(l * Cx (&0)) = (Cx(&0))`; CEXP_0]);;
+e (SIMP_TAC [COMPLEX_RING `(A * Cx (&1)) = (A)`]);;
+(*****************************************)
+ e (MATCH_MP_TAC CONTINUOUS_COMPLEX_MUL);;
+e (SIMP_TAC [CONTINUOUS_CONST]);;
+e (SIMP_TAC [CONTINUOUS_AT_CEXP]);;
+e (MATCH_MP_TAC DIFFERENTIABLE_IMP_CONTINUOUS_AT);;
+e (SIMP_TAC [differentiable]);;
+e (EXISTS_TAC `((\x:real^1. (drop x ) %  ((l) * (
+                                      cexp
+                                      ((\x. (l:real^2) * Cx (drop x)) (lift (&0))) )))) `);;
+e (MP_TAC (ISPECL
+     [` (\x. cexp (l * Cx (drop x))) `;
+      `((l) * (
+                                      cexp
+                                      ((\x. (l:real^2) * Cx (drop x)) (lift (&0))) ))  `;
+      `(at (lift (&0)))`] (GSYM has_vector_derivative)) ) ;;
+e (ASM_SIMP_TAC [EQ_SYM_EQ]);;
+e (ASM_REWRITE_TAC []);;
+e (REPEAT STRIP_TAC);;
+e (POP_ASSUM (K ALL_TAC));;
+e (ONCE_REWRITE_TAC [prove ( `  ((\x. cexp (l * Cx (drop x))) =
+ ((\x. cexp ((\x. (l * Cx (drop x))) x)))) `, MESON_TAC [ETA_AX] ) ]);;
+e (SUBGOAL_THEN `(cexp (l * Cx (drop (lift (&0)))))  =
+ (cexp ((\x. l * Cx (drop (x))) (lift (&0))))` ASSUME_TAC);;
+e (SIMP_TAC [ETA_AX]);;
+e (PURE_ASM_REWRITE_TAC []);;
+e (MATCH_MP_TAC CEXP_DERIV_AT);;
+
+     e ( MP_TAC(ISPECL
+   [`( * ):complex->complex->complex`; `(\x:real^1. (l:complex) )`;
+    `\x. Cx(drop x)`; `Cx(&0)`; `Cx(&1)`] HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+
+    e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+    e (REWRITE_TAC[GSYM COMPLEX_VEC_0]);;
+    e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+    e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_ID]);;
+
+e (SUBGOAL_THEN `(\x. Cx (drop x)) = 
+      	Cx o (\x . x) o drop` ASSUME_TAC);;
+   	e (SIMP_TAC [o_DEF]);;
+   	e (ONCE_ASM_REWRITE_TAC []);;
+   e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+   e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+   e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+   e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+
+
+    e (REWRITE_TAC[COMPLEX_RING `(l * Cx (&1) + Cx (&0) * Cx (drop x)) = (l)`]);;
+
+e (DISCH_THEN (MP_TAC o SPEC `(lift (&0))`));;
+e (ASM_SIMP_TAC []);;
+
+let CEXP_LIM_AT_0 = top_thm ();;
+
+(*******exp function limit***(AT &0) for negative argument***)
+
+
+
+
+g `!(l:complex) (A:complex).  (((\x. A * cexp (--l * Cx(drop (x)))) --> A) (at (lift (&0))) )`;;
+e (REPEAT STRIP_TAC );;
+e (MATCH_MP_TAC LIM_CONTINUOUS_SELF_AT);;
+
+e (SIMP_TAC [ETA_AX; LIFT_DROP]);;
+e (SIMP_TAC [COMPLEX_RING `(l * Cx (&0)) = (Cx(&0))`; CEXP_0]);;
+e (SIMP_TAC [COMPLEX_RING `(A * Cx (&1)) = (A)`]);;
+(*****************************************)
+ e (MATCH_MP_TAC CONTINUOUS_COMPLEX_MUL);;
+e (SIMP_TAC [CONTINUOUS_CONST]);;
+e (SIMP_TAC [CONTINUOUS_AT_CEXP]);;
+e (MATCH_MP_TAC DIFFERENTIABLE_IMP_CONTINUOUS_AT);;
+e (ONCE_REWRITE_TAC [differentiable]);;
+e (EXISTS_TAC `((\x:real^1. (drop x ) %  ((--l) * (
+                                      cexp
+                                      ((\x. --(l:real^2) * Cx (drop x)) (lift (&0))) )))) `);;
+e (MP_TAC (ISPECL
+     [` (\x. cexp (--l * Cx (drop x))) `;
+      `((--l) * (
+                                      cexp
+                                      ((\x. --(l:real^2) * Cx (drop x)) (lift (&0))) ))  `;
+      `(at (lift (&0)))`] (GSYM has_vector_derivative)) ) ;;
+e (ASM_SIMP_TAC [EQ_SYM_EQ]);;
+e (ASM_REWRITE_TAC []);;
+e (REPEAT STRIP_TAC);;
+e (POP_ASSUM (K ALL_TAC));;
+e (ONCE_REWRITE_TAC [prove ( `  ((\x. cexp (--l * Cx (drop x))) =
+ ((\x. cexp ((\x. (--l * Cx (drop x))) x)))) `, MESON_TAC [ETA_AX] ) ]);;
+e (SUBGOAL_THEN `(cexp (--l * Cx (drop (lift (&0)))))  =
+ (cexp ((\x. --l * Cx (drop (x))) (lift (&0))))` ASSUME_TAC);;
+e (SIMP_TAC [ETA_AX]);;
+e (PURE_ASM_REWRITE_TAC []);;
+e (MATCH_MP_TAC CEXP_DERIV_AT);;
+
+     e ( MP_TAC(ISPECL
+   [`( * ):complex->complex->complex`; `(\x:real^1. --(l:complex) )`;
+    `\x. Cx(drop x)`; `Cx(&0)`; `Cx(&1)`] HAS_VECTOR_DERIVATIVE_BILINEAR_AT));;
+
+    e (ASM_SIMP_TAC [BILINEAR_COMPLEX_MUL]);;
+    e (REWRITE_TAC[GSYM COMPLEX_VEC_0]);;
+    e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_CONST]);;
+    e (ASM_SIMP_TAC [HAS_VECTOR_DERIVATIVE_ID]);;
+
+e (SUBGOAL_THEN `(\x. Cx (drop x)) = 
+      	Cx o (\x . x) o drop` ASSUME_TAC);;
+   	e (SIMP_TAC [o_DEF]);;
+   	e (ONCE_ASM_REWRITE_TAC []);;
+   e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+   e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+   e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+   e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+
+
+    e (REWRITE_TAC[COMPLEX_RING `(--l * Cx (&1) + Cx (&0) * Cx (drop x)) = (--l)`]);;
+
+e (DISCH_THEN (MP_TAC o SPEC `(lift (&0))`));;
+e (ASM_SIMP_TAC []);;
+
+let CEXP_NEG_LIM_AT_0 = top_thm ();;
+
+    		      (***********************************)
+		      (***********************************)
+		      (*****                         *****)
+		      (*****  function left limit    *****)
+		      (*****                         *****)
+		      (***********************************)
+		      (***********************************)
+
+let single_switch_status_h_10 = 
+
+new_definition `single_switch_status_h_10
+ (t:real)  =
+    if  (( (t) < (&0)) ) 
+     then (&1) else if t = &0 then ((&1) / (&2) ) 
+    else (&0) 
+ `;;
+
+let linear_sol_combin = new_recursive_definition list_RECURSION
+    `(linear_sol_combin (C:(real) list) [] (x:real^1) = Cx(&0)) /\ 
+      linear_sol_combin C (CONS (h:real^1->real^2) t) (x:real^1) = 
+      		  ((Cx (EL (LENGTH C - LENGTH (CONS h t)) C)) * (h x) + (linear_sol_combin C t x))`;;
+
+
+let cexp_list = new_recursive_definition list_RECURSION
+   `(cexp_list [] = [] ) /\
+     (cexp_list  (CONS (s:real^2) t )) =
+    (CONS  (\x:real^1. cexp (s * Cx(drop(x)))  ) (cexp_list t))`;;
+
+
+let solution_shifted101 = new_definition 
+    `solution_shifted101  (c1:real)  (c2:real)  (t_on:real) (s1:complex) (s2:complex) (cnst1:real) (cnst2:real) (x:real^1)= (((linear_sol_combin 
+	      [c1] 
+	      (cexp_list [s1]) (x)) + Cx(cnst1) ) * (Cx ( single_switch_status_h_10 (drop x - t_on))) + (((linear_sol_combin 
+	      [c2] 
+	      (cexp_list [s2]) (x - lift (t_on)) + Cx(cnst2)) ) ) * (Cx (&1 - single_switch_status_h_10 (drop x - t_on)))) `;;
+
+	      
+g `!(c1:real) (c2:real) (c3:real) (c4:real) (t_on:real) (s1:complex) (s2:complex) (cnst1:real) (cnst2:real) (x:real^1). 
+
+  ((\x. solution_shifted101 c1 c2  t_on s1 s2 cnst1 cnst2 x) --> ((Cx(c1) * cexp (s1 * Cx(t_on))  + Cx(cnst1)) ))   ((at (lift (t_on)) within {x |  drop x <= t_on})) `;;
+ 
+e (REPEAT STRIP_TAC);;
+e (SUBGOAL_THEN `((\x. Cx(c1) * cexp (s1 * Cx((drop x) + t_on)) + Cx(cnst1)) --> (Cx(c1) * cexp (s1 * Cx(t_on))  + Cx(cnst1)))   ((at ((lift (t_on - t_on))) within {x | drop x <=  (t_on - t_on )}))` ASSUME_TAC);;
+
+e (SUBGOAL_THEN `(((\x. Cx c1 * cexp (s1 * Cx (drop x + t_on)) +
+       Cx cnst1) -->
+  Cx c1 * cexp (s1 * Cx t_on)  + Cx cnst1)
+ (at (lift (t_on - t_on)) within {x | drop x <= t_on - t_on})) = (((\x. Cx c1 * cexp (s1 * Cx (drop x + t_on))  +
+       Cx cnst1) -->
+  Cx c1 * cexp (s1 * Cx t_on)  + Cx cnst1)
+ (at (lift (t_on - t_on)) within {x | drop x <= drop (lift (t_on - t_on))}))` ASSUME_TAC);;
+e (ASM_SIMP_TAC [LIFT_DROP]);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (SIMP_TAC [CX_ADD;  COMPLEX_RING `(a:complex) * (b + c) = (a * b + a * c)`; CEXP_ADD; COMPLEX_RING `(a:complex) * b * c = (a * c) * b`]);;
+
+e (MATCH_MP_TAC LIM_ADD);;
+e (STRIP_TAC);;
+e (MATCH_MP_TAC LIM_IMP_LEFT_LIM);;
+e (REWRITE_TAC [REAL_ARITH `(t_on - t_on) = &0`]);;
+e (SIMP_TAC [CEXP_LIM_AT_0]);;
+e (SIMP_TAC [LIM_CONST]);;
+
+
+e (SUBGOAL_THEN `(((\x. solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 x) -->
+  Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1)
+ (at (lift t_on) within {x | drop x <= t_on}) ) = (((\x. solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 x) -->
+  Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1)
+ (at (lift t_on) within {x | drop x <= drop (lift (t_on))}))` ASSUME_TAC);;
+e (MESON_TAC [LIFT_DROP]);;
+e (ASM_REWRITE_TAC [] THEN POP_ASSUM (K ALL_TAC));;
+e (ONCE_REWRITE_TAC [LEFT_LIMIT_ALT]);;
+
+
+e (SUBGOAL_THEN `(((\x. Cx c1 * cexp (s1 * Cx (drop x + t_on))+
+            Cx cnst1) -->
+       Cx c1 * cexp (s1 * Cx t_on)  + Cx cnst1)
+      (at (lift (t_on - t_on)) within {x | drop x <= t_on - t_on})) = (((\x. Cx c1 * cexp (s1 * Cx (drop x + t_on))  +
+            Cx cnst1) -->
+       Cx c1 * cexp (s1 * Cx t_on)  + Cx cnst1)
+      (at (lift (t_on - t_on)) within {x | drop x <= drop (lift (t_on - t_on))})) ` ASSUME_TAC);;
+e (SIMP_TAC [LIFT_DROP]);;
+e (UNDISCH_TAC `((\x. Cx c1 * cexp (s1 * Cx (drop x + t_on)) +
+            Cx cnst1) -->
+       Cx c1 * cexp (s1 * Cx t_on)  + Cx cnst1)
+      (at (lift (t_on - t_on)) within {x | drop x <= t_on - t_on})`);;
+e (ASM_REWRITE_TAC [] THEN POP_ASSUM (K ALL_TAC));;
+e (ONCE_REWRITE_TAC [LEFT_LIMIT_ALT]);;
+e (REWRITE_TAC [tendsto]);;
+
+e (REWRITE_TAC[EVENTUALLY_WITHIN_IMP]);;
+
+
+
+e (REPEAT STRIP_TAC);;
+e (UNDISCH_TAC `!e. &0 < e
+          ==> eventually
+              (\x. x IN {x | drop x < drop (lift (t_on - t_on))}
+                   ==> dist
+                       (Cx c1 * cexp (s1 * Cx (drop x + t_on)) +
+                        Cx cnst1,
+                        Cx c1 * cexp (s1 * Cx t_on)  +
+                        Cx cnst1) <
+                       e)
+              (at (lift (t_on - t_on)))`);;
+e (DISCH_THEN (MP_TAC o SPEC `e:real`));;
+e (ASM_SIMP_TAC []);;
+e (ASM_SIMP_TAC [EVENTUALLY_AT]);;
+e (REPEAT STRIP_TAC);;
+e (EXISTS_TAC `d:real`);;
+e (ASM_SIMP_TAC []);;
+e (STRIP_TAC);;
+e (REWRITE_TAC [DIST_1]);;
+e (SIMP_TAC [LIFT_DROP]);;
+e (REPEAT STRIP_TAC);;
+e (UNDISCH_TAC `!x. &0 < dist (x,lift (t_on - t_on)) /\ dist (x,lift (t_on - t_on)) < d
+          ==> x IN {x | drop x < drop (lift (t_on - t_on))}
+          ==> dist
+              (Cx c1 * cexp (s1 * Cx (drop x + t_on))  +
+               Cx cnst1,
+               Cx c1 * cexp (s1 * Cx t_on)  +
+               Cx cnst1) <
+              e`);;
+e (DISCH_THEN (MP_TAC o SPEC `(lift ((drop( x)) - t_on))`));;
+e (ASM_SIMP_TAC [DIST_LIFT]);;
+e (REWRITE_TAC [REAL_ARITH `((a:real) - b - (b - b)) = (a - b)`]);;
+e (ASM_SIMP_TAC []);;
+e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [IN_ELIM_THM; LIFT_DROP]);;
+e (SIMP_TAC [REAL_ARITH `(drop x - t_on < t_on - t_on) = ( drop x < t_on)`]);;
+e (SIMP_TAC [REAL_ARITH `((drop x - t_on + t_on) ) = ( drop x )`]);;
+e (REPEAT STRIP_TAC);;
+e (SUBGOAL_THEN `!x. (drop x  < t_on) ==> (solution_shifted101 c1 c2  t_on s1 s2 cnst1 cnst2  x) = (Cx c1 * cexp (s1 * Cx (drop x ))  +
+       Cx cnst1)` ASSUME_TAC);;
+e (REPEAT STRIP_TAC);;
+e (REWRITE_TAC []);;
+
+e (SIMP_TAC [solution_shifted101;linear_sol_combin; cexp_list]);;
+e (ASM_SIMP_TAC [LENGTH]);;
+e (ASM_SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD;TL]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [TL; HD]);;
+e (SIMP_TAC [ARITH]);;
+e (ASM_SIMP_TAC [COMPLEX_RING `(a:complex) + Cx(&0) = a`]);;
+e (SIMP_TAC [single_switch_status_h_10]);;
+e (SIMP_TAC [REAL_ARITH `(drop x' - t_on < &0) = (drop x' < t_on)`]);;
+e (ASM_SIMP_TAC []);;
+e (SIMP_TAC [REAL_ARITH `(&1 - &1) = (&0)`]);;
+e (ASM_SIMP_TAC [COMPLEX_RING `a* Cx(&0)  = Cx(&0)`]);;
+
+e (ASM_SIMP_TAC [COMPLEX_RING `a * Cx(&1) + Cx(&0) = a`]);;
+
+e (ASM_SIMP_TAC []);;
+
+let I_FUNCTION_LEFT_LIM = top_thm ();;
+
+    		      (*******************************************)
+		      (*******************************************)
+		      (*****                                 *****)
+		      (***** coefficinets equation function  *****)
+		      (*****                                 *****)
+ 		      (*******************************************)
+		      (*******************************************)
+		      
+
+g `! (c1:real) (c2:real) (cnst1:real) (cnst2:real) (t_on:real)  (s1:complex) (s2:complex) (t:real^1). 
+ 
+   (!t. (\t.  solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 
+                   t) continuous at t ) ==> (Cx c2 - Cx c1 * cexp (s1 * Cx t_on)  =  Cx cnst1 -  Cx cnst2 )`;;
+
+e (SIMP_TAC [continuous]);;
+e (ONCE_REWRITE_TAC [NETLIMIT_AT]);;
+e (REPEAT GEN_TAC);;
+e (STRIP_TAC);;
+e (POP_ASSUM MP_TAC);;
+e (DISCH_THEN (MP_TAC o SPEC `lift(t_on:real)`));;
+
+(***here***)
+e (SUBGOAL_THEN `((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift t_on))
+  )= ((Cx(c1) * cexp (s1 * Cx(t_on)) +  Cx(cnst1)) * Cx(&1 / &2)  + ((Cx(c2) +  Cx(cnst2)) * Cx (&1 / &2)))` ASSUME_TAC);;
+e (SIMP_TAC [solution_shifted101; linear_sol_combin; cexp_list]);;
+e (ASM_SIMP_TAC [LENGTH]);;
+e (ASM_SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD;TL]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [TL; HD]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [single_switch_status_h_10; LIFT_DROP]);;
+e (ASM_SIMP_TAC [REAL_ARITH `t_on - t_on = &0`]);;
+e (ASM_SIMP_TAC [REAL_ARITH `(&0 < &0) = (F)`]);;
+e (SIMP_TAC [DROP_SUB; LIFT_DROP]);;
+e (SIMP_TAC [REAL_ARITH `(t_on - t_on) = &0`]);;
+e (SIMP_TAC [REAL_ARITH `(&1 - &1 / &2) = (&1 / &2)`]);;
+e (SIMP_TAC [COMPLEX_RING `(a * Cx(&0)) = (Cx(&0))`]);;
+e (SIMP_TAC [COMPLEX_RING `( Cx (&0) + Cx (&0)) = (Cx(&0))`]);;
+e (SIMP_TAC [CEXP_0]);;
+e (SIMP_TAC [COMPLEX_RING `(a +  Cx(&0)) = (a)`]);;
+e (SIMP_TAC [COMPLEX_RING `(a * Cx(&1)) = (a)`]);;
+e (ASM_REWRITE_TAC []);;
+e (REPEAT STRIP_TAC);;
+
+e (SUBGOAL_THEN `((((\t. solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 t) -->
+       (Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1) * Cx (&1 / &2) +
+       (Cx c2 + Cx cnst2) * Cx (&1 / &2))  )
+      ((at (lift t_on) within {x | drop x <= t_on})))` ASSUME_TAC);;
+
+e (SUBGOAL_THEN `(((\t. solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 t) -->
+  (Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1) * Cx (&1 / &2) +
+  (Cx c2 + Cx cnst2) * Cx (&1 / &2))
+ (at (lift t_on) within {x | drop x <= t_on})) = (((\t. solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 t) -->
+  (Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1) * Cx (&1 / &2) +
+  (Cx c2 + Cx cnst2) * Cx (&1 / &2))
+ (at (lift t_on) within {x | drop x <= drop (lift (t_on))}) 
+ )` ASSUME_TAC);;
+
+e (MESON_TAC [LIFT_DROP]);;
+e (ASM_REWRITE_TAC [] THEN POP_ASSUM (K ALL_TAC));;
+e (MATCH_MP_TAC LIM_IMP_LEFT_LIM);;
+e (ASM_SIMP_TAC []);;
+e (SUBGOAL_THEN `(((\x. solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 x) -->
+          Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1)
+         (at (lift t_on) within {x | drop x <= t_on}))` ASSUME_TAC);;
+e (ASM_SIMP_TAC [I_FUNCTION_LEFT_LIM]);;
+
+
+e (SUBGOAL_THEN `((Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1) * Cx (&1 / &2) +
+  (Cx c2 + Cx cnst2) * Cx (&1 / &2)) = (Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1 )` ASSUME_TAC);;
+e (MATCH_MP_TAC LEFT_LIM_UNIQUE);;
+e (EXISTS_TAC `(\x. solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 x)`);;
+e (EXISTS_TAC `lift (t_on)`);;
+e (ASM_SIMP_TAC [LIFT_DROP]);;
+e (SUBGOAL_THEN `(at (lift t_on) within {x | drop x <= t_on}) = (at (lift t_on) within {x | drop x <= drop (lift t_on)})` ASSUME_TAC);;
+e (MESON_TAC [LIFT_DROP]);;
+e (ASM_REWRITE_TAC []);;
+e (SIMP_TAC [NON_TRIVIAL_LIMIT_LEFT]);;
+
+e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [COMPLEX_RING `((a * Cx (&1 / &2) + b *  Cx (&1 / &2)) = (a)) = (b = a)`]);;
+e (POP_ASSUM MP_TAC THEN ASM_SIMP_TAC [COMPLEX_RING `(((a:complex)  + b ) = (c + d )) = (a - c = d - b)`]);;
+
+let FIRST_EQUATION_FOR_COEFFICIENTS_I =top_thm ();;
+
+(********Theorem 3.4 (CONJ 1)***************)
+
+g `! (c1:real) (c2:real) (cnst1:real) (cnst2:real) (Tp:real) (t_on:real)  (s1:complex) (s2:complex) (t:real^1).
+(&0 < t_on) ==>
+    ((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 
+                   (lift (&0))) =   (((Cx c1 ) + Cx cnst1) ))`;;
+
+
+e (REPEAT GEN_TAC);;
+e (STRIP_TAC);;
+e (SIMP_TAC [solution_shifted101; linear_sol_combin; cexp_list]);;
+e (ASM_SIMP_TAC [LENGTH]);;
+e (ASM_SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD;TL]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [TL; HD]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [single_switch_status_h_10; LIFT_DROP]);;
+e (ASM_SIMP_TAC []);;
+e (ASM_SIMP_TAC [REAL_ARITH `( &0 - t_on < &0) = (&0 < t_on)`]);;
+e (SIMP_TAC [DROP_SUB; LIFT_DROP]);;
+e (SIMP_TAC [REAL_ARITH `((&1 - &1)) = &0`]);;
+e (SIMP_TAC [COMPLEX_RING `(a * Cx(&0)) = (Cx(&0))`]);;
+e (SIMP_TAC [COMPLEX_RING `( Cx (&0) + Cx (&0)) = (Cx(&0))`]);;
+e (SIMP_TAC [CEXP_0]);;
+e (SIMP_TAC [COMPLEX_RING `(a +  Cx(&0)) = (a)`]);;
+e (SIMP_TAC [COMPLEX_RING `(a * Cx(&1)) = (a)`]);;
+
+let I_AT_0 =top_thm ();;
+(*Function value at for c2*)
+
+(********Theorem 3.4 (CONJ 2)***************)
+(***********C2 Vlaue*********************)
+(****************************************)
+
+g `! (c1:real) (c2:real) (cnst1:real) (cnst2:real) (t_on:real)  (s1:complex) (s2:complex) (t:real^1). 
+( (&0 < t_on) /\
+   (!t. (\t.  solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 
+                   t) continuous at t )) ==> (Cx c2  =  (
+		   (solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0))
+		   - Cx(cnst1)) * cexp (s1 * Cx t_on) + Cx cnst1 -  Cx cnst2 ))`;;
+		   e (REPEAT STRIP_TAC );;
+e (SUBGOAL_THEN `
+Cx c2 - Cx c1 * cexp (s1 * Cx t_on) = Cx cnst1 - Cx cnst2` ASSUME_TAC);;
+e (MATCH_MP_TAC  FIRST_EQUATION_FOR_COEFFICIENTS_I);;
+e (EXISTS_TAC `s2:complex`);;
+e (ASM_SIMP_TAC []);;
+e (SUBGOAL_THEN `solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) =
+             Cx c1 + Cx cnst1` ASSUME_TAC);;
+e (MATCH_MP_TAC  I_AT_0);;
+e (ASM_SIMP_TAC []);;
+e (POP_ASSUM MP_TAC);;
+e (ONCE_REWRITE_TAC [COMPLEX_RING `(solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) =
+ Cx c1 + Cx cnst1) = (Cx c1 = solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) - Cx cnst1)`]);;
+e (DISCH_TAC);;
+e (UNDISCH_TAC `Cx c2 - Cx c1 * cexp (s1 * Cx t_on) = Cx cnst1 - Cx cnst2`);;
+e (ONCE_REWRITE_TAC [COMPLEX_RING `(Cx c2 - Cx c1 * cexp (s1 * Cx t_on) = Cx cnst1 - Cx cnst2) = (Cx c2 =  Cx c1 * cexp (s1 * Cx t_on) + Cx cnst1 - Cx cnst2)`]);;
+e (ASM_SIMP_TAC []);;
+
+let SECOND_COEFFICIENT_SOLUTION = top_thm();;
+
+(*-Lemma 1-*)
+
+g `!(a:real) (b:real)  (s:real)  (t:real^1).
+  	     (drop (lift a) <= drop (lift b)) /\ ( lift (drop( t))  IN interval (lift (a), lift (b)))/\(~(s = &0)) ==>
+     (integral ( interval [lift(a), lift(b)] )  (\t:real^1. cexp (Cx(s) * Cx((drop t))) )
+    =
+    Cx(inv (s)) * (cexp (  Cx(s) * Cx( drop (lift (b)) )  ) - cexp (  Cx(s) * Cx( drop (lift (a)) )  )) 
+  ) `;;
+ e (REPEAT STRIP_TAC);;
+   e ( MP_TAC(ISPECL
+	   [`(\t. Cx(inv(s)) * cexp(Cx(s) * Cx(drop t)))`;
+	   `( \t.  cexp(Cx(s) * Cx(drop t)) )`;
+	   `(lift a)`; `(lift b)`] 
+	    FUNDAMENTAL_THEOREM_OF_CALCULUS_INTERIOR));;
+    e (ASM_SIMP_TAC []);;
+
+
+ e (SUBGOAL_THEN `(\t. Cx (inv s) * cexp (Cx s * Cx (drop t))) continuous_on
+  interval [lift a,lift b] ` ASSUME_TAC);;
+     e (ONCE_REWRITE_TAC [GSYM COMPLEX_CMUL]);;
+        e (MATCH_MP_TAC CONTINUOUS_ON_CMUL);;
+
+e (ONCE_REWRITE_TAC [GSYM o_DEF]);;
+e (MATCH_MP_TAC CONTINUOUS_ON_COMPOSE);;
+     e (ONCE_REWRITE_TAC [GSYM COMPLEX_CMUL]);;
+e (CONJ_TAC);;
+        e (MATCH_MP_TAC CONTINUOUS_ON_CMUL);;
+	e (ONCE_REWRITE_TAC [CONTINUOUS_ON_CX_LIFT]);;
+e (ONCE_REWRITE_TAC [LIFT_DROP]);;
+
+e (SIMP_TAC [ CONTINUOUS_ON_ID]);;
+
+e (ONCE_REWRITE_TAC [IMAGE; CONTINUOUS_ON_CEXP]);;
+e (ASM_SIMP_TAC []);;
+e (REPEAT STRIP_TAC);;
+e (SUBGOAL_THEN `(!x. x IN interval (lift a,lift b)
+           ==> ((\t. Cx (inv s) * cexp (Cx s * Cx (drop t))) has_vector_derivative
+                cexp (Cx s * Cx (drop x)))
+               (at x))` ASSUME_TAC);;
+	       e (REPEAT STRIP_TAC);;
+e (SUBGOAL_THEN `(((\t. Cx (inv s) * cexp (Cx s * Cx (drop t))) has_vector_derivative
+  cexp (Cx s * Cx (drop x)))
+ (at x))=
+(((\t. Cx (inv s) * cexp (Cx s * Cx (drop t))) has_vector_derivative
+ (Cx(&1) * ( cexp (Cx s * Cx (drop x)))) )
+ (at x))` ASSUME_TAC);;
+ e (SIMP_TAC [COMPLEX_RING `Cx(&1) * (a:complex) = a`]);;
+ e (ONCE_ASM_REWRITE_TAC []);;
+ e (POP_ASSUM (K ALL_TAC));;
+e (SUBGOAL_THEN `(&1)=((inv s) * s)` ASSUME_TAC);;
+e (ONCE_REWRITE_TAC [EQ_SYM_EQ]);;
+e (MATCH_MP_TAC REAL_MUL_LINV);;
+e (ASM_SIMP_TAC []);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (ONCE_REWRITE_TAC [CX_MUL]);;
+e (ONCE_REWRITE_TAC [COMPLEX_RING `(a*b)*(c:complex) = (a * (b *c))`]);;
+e (ONCE_REWRITE_TAC [GSYM COMPLEX_CMUL]);;
+e (MATCH_MP_TAC  HAS_VECTOR_DERIVATIVE_CMUL);;
+e (MATCH_MP_TAC  CEXP_DERIV_AT);;
+e (ONCE_REWRITE_TAC [GSYM COMPLEX_CMUL]);;
+e (ONCE_REWRITE_TAC [COMPLEX_RING `Cx(s) = Cx(s) * Cx(&1)`]);;
+e (ONCE_REWRITE_TAC [COMPLEX_RING `(Cx (drop x) * Cx (&1)) =
+(Cx (drop x)) `]);;
+e (ONCE_REWRITE_TAC [GSYM COMPLEX_CMUL]);;
+e (MATCH_MP_TAC  HAS_VECTOR_DERIVATIVE_CMUL);;
+e (POP_ASSUM (K ALL_TAC));;
+
+e (SUBGOAL_THEN `(\x. Cx (drop x)) =
+              (Cx o  (\x. x) o drop) ` ASSUME_TAC);;
+e (ASM_SIMP_TAC [o_DEF]);;
+e (ASM_REWRITE_TAC []);;
+
+e (ONCE_REWRITE_TAC [GSYM LIFT_DROP]);;
+      e (SIMP_TAC [GSYM HAS_CX_VECTOR_DERIVATIVE_AT]);;
+  e (SIMP_TAC [LIFT_DROP ;  HAS_REAL_DERIVATIVE_ID]);;
+      e (ONCE_REWRITE_TAC [COMPLEX_VEC_0]);;
+      e (ASM_SIMP_TAC []);;
+      e (UNDISCH_TAC `(!x. x IN interval (lift a,lift b)
+           ==> ((\t. Cx (inv s) * cexp (Cx s * Cx (drop t))) has_vector_derivative
+                cexp (Cx s * Cx (drop x)))
+               (at x))
+      ==> ((\t. cexp (Cx s * Cx (drop t))) has_integral
+           Cx (inv s) * cexp (Cx s * Cx (drop (lift b))) -
+           Cx (inv s) * cexp (Cx s * Cx (drop (lift a))))
+          (interval [lift a,lift b])`);;
+	  e (ASM_SIMP_TAC []);;
+e (REPEAT STRIP_TAC);;
+e (MATCH_MP_TAC INTEGRAL_UNIQUE);;
+e (ASM_SIMP_TAC [COMPLEX_RING `(a * (b - c)) = (a * b - a * (c:complex))`]);;
+ e (ASM_SIMP_TAC [LIFT_DROP]);;
+
+let CEXP_INTEGRAL = top_thm();;
+
+(******************************************)
+(*********Ripple Current*******************)
+(******************************************)
+
+(******Steady State Current****************)
+
+(*Function value at t = Tp*)
+g `! (c1:real) (c2:real) (cnst1:real) (cnst2:real) (Tp:real) (t_on:real)  (s1:complex) (s2:complex) (t:real^1).
+(t_on < Tp) ==>
+    ((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 
+                   (lift (Tp))) =   (Cx c2 * cexp (s2 * Cx (Tp - t_on)) + Cx cnst2 ))`;;
+
+
+e (REPEAT GEN_TAC);;
+e (STRIP_TAC);;
+e (SIMP_TAC [solution_shifted101; linear_sol_combin; cexp_list]);;
+e (ASM_SIMP_TAC [LENGTH]);;
+e (ASM_SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD;TL]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [TL; HD]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [single_switch_status_h_10; LIFT_DROP]);;
+e (ASM_SIMP_TAC []);;
+e (ASM_SIMP_TAC [REAL_ARITH `( Tp- t_on < &0) = (Tp < t_on)`]);;
+e (SUBGOAL_THEN `~(Tp < t_on)`ASSUME_TAC);;
+e (ASM_MESON_TAC[REAL_NOT_LT; REAL_LE_LT]);;
+e (ASM_SIMP_TAC []);;
+e (SUBGOAL_THEN `~((Tp:real) = t_on)`ASSUME_TAC);;
+e (ONCE_REWRITE_TAC [REAL_NOT_EQ]);;
+e (ASM_SIMP_TAC []);;
+e (ASM_SIMP_TAC [REAL_ARITH `( Tp - t_on = &0 ) = (Tp = t_on)`]);;
+e (SIMP_TAC [DROP_SUB; LIFT_DROP]);;
+e (SIMP_TAC [COMPLEX_RING `(a * Cx(&0)) = (Cx(&0))`]);;
+e (SIMP_TAC [COMPLEX_RING `(a +  Cx(&0)) = (a)`]);;
+e (SIMP_TAC [REAL_ARITH `((&1 - &0)) = &1`]);;
+e (SIMP_TAC [COMPLEX_RING `(  Cx(&0) + a) = (a)`]);;
+e (SIMP_TAC [COMPLEX_RING `(a * Cx(&1)) = (a)`]);;
+
+
+let I_AT_T =top_thm ();;
+
+g `! (c1:real) (c2:real) (cnst1:real) (cnst2:real) (Tp:real) (t_on:real)  (s1:complex) (s2:complex) (t:real^1).(
+((&0 < t_on) /\ (t_on < Tp) /\ ((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2  (lift (Tp))) = ((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 
+                   (lift (&0)))))/\
+		    ~((Cx (&1) - cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on))) = Cx(&0)) /\
+((!t. (\t.  solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 
+                   t) continuous at t )) ) ==>
+    (solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0))  =
+( Cx cnst1 *
+ (cexp (s2 * Cx (Tp - t_on)) - cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on))) +
+ Cx cnst2 * (Cx (&1) - cexp (s2 * Cx (Tp - t_on))) ) /
+ (Cx (&1) - cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on)))))`;;
+
+e (REPEAT STRIP_TAC);;
+(*e (SUBGOAL_THEN `Cx c2 - Cx c1 * cexp (s1 * Cx t_on) = Cx cnst1 - Cx cnst2` ASSUME_TAC);;*)
+(*e (MATCH_MP_TAC  FIRST_EQUATION_FOR_COEFFICIENTS_I);;*)
+(*e (EXISTS_TAC `s2:complex`);;*)
+(*e (ASM_SIMP_TAC []);;*)
+
+e (SUBGOAL_THEN `Cx c2 =
+             (solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) -
+              Cx cnst1) *
+             cexp (s1 * Cx t_on) +
+             Cx cnst1 - Cx cnst2` ASSUME_TAC);;
+	     e (MATCH_MP_TAC   SECOND_COEFFICIENT_SOLUTION);;
+	     
+e (ASM_SIMP_TAC []);;
+
+
+e (SUBGOAL_THEN `solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) =
+             Cx c1 + Cx cnst1` ASSUME_TAC);;
+	     e (MATCH_MP_TAC   I_AT_0);;
+e (ASM_SIMP_TAC []);;
+
+e (UNDISCH_TAC `solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) =
+      Cx c1 + Cx cnst1`);;
+      e (SIMP_TAC [COMPLEX_RING `(solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) =
+ Cx c1 + Cx cnst1) =(Cx c1 = solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) - Cx cnst1)`]);;
+ e (STRIP_TAC);;
+
+
+e (SUBGOAL_THEN `solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift Tp) =
+             Cx c2 * cexp (s2 * Cx (Tp - t_on)) + Cx cnst2 ` ASSUME_TAC);;
+	     e (MATCH_MP_TAC   I_AT_T);;
+e (ASM_SIMP_TAC []);;
+
+e (UNDISCH_TAC `solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift Tp) =
+      solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0))`);;
+
+e (ONCE_ASM_REWRITE_TAC []);;
+e (ONCE_ASM_REWRITE_TAC []);;
+e (SIMP_TAC [COMPLEX_RING `(a - b) *(c:complex) = (a * c - b *c)`]);;
+e (SIMP_TAC [COMPLEX_RING `(a - b + c - d) *(e:complex) = (a * e - b * e + c * e - d * e)`]);;
+e (SIMP_TAC [COMPLEX_RING `((a - b + c - d) + e)
+= (a + c - b + e - d)`]);;
+
+e (SIMP_TAC [COMPLEX_RING `(  (solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) *
+  cexp (s1 * Cx t_on)) *
+ cexp (s2 * Cx (Tp - t_on)) +
+ Cx cnst1 * cexp (s2 * Cx (Tp - t_on)) -
+ (Cx cnst1 * cexp (s1 * Cx t_on)) * cexp (s2 * Cx (Tp - t_on)) +
+ Cx cnst2 - Cx cnst2 * cexp (s2 * Cx (Tp - t_on)) )
+= ((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) *
+  cexp (s1 * Cx t_on)) *
+ cexp (s2 * Cx (Tp - t_on)) +
+ Cx cnst1 * (cexp (s2 * Cx (Tp - t_on)) -
+ (cexp (s1 * Cx t_on)) * cexp (s2 * Cx (Tp - t_on))) +
+ Cx cnst2 * ( Cx(&1)- cexp (s2 * Cx (Tp - t_on)))) `]);;
+
+e (SIMP_TAC [COMPLEX_RING `(((a:complex) + b + c)= (e)) = (( b + c)= (e - a))`]);;
+e (SIMP_TAC [COMPLEX_RING `( (a:complex) - (a * c) * d ) = (a * (Cx(&1) - c * d) )`]);;
+e (ASM_SIMP_TAC [GSYM CEXP_ADD; EQ_SYM_EQ]);;
+e (UNDISCH_TAC `~(Cx (&1) - cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on)) = Cx (&0))`);;
+e (ASM_SIMP_TAC [GSYM COMPLEX_EQ_RDIV_EQ]);;
+
+let STEADY_STATE_CURRENT = top_thm ();;
+
+
+(*-Definition 3.13-*)
+
+new_definition `average_ac
+  (g:real^1->complex) (s:real^1->bool)  =
+   ( Cx(drop ((interval_upperbound s) - (interval_lowerbound s))) * integral s g) 
+ `;;
+
+
+(*-Definition 3.14-*)
+
+let ripple = 
+new_definition `ripple
+ (g:real^1->complex) (x:real^1) (y:real^1)  =
+    ((g x) - (g y)) 
+ `;;
+
+
+(*-Definition 3.15-*)
+
+let rms_ripple = 
+new_definition `rms_ripple
+ (g:real^1->complex) (x:real^1) (y:real^1)  =
+    ((g x) - (g y))/(Cx(&2) * csqrt (Cx(&3))) 
+ `;;
+
+
+(*-Definition 3.16-*)
+
+let rms_ac = 
+new_definition `rm_ac
+ (g:real^1->complex) (s:real^1->bool) (x:real^1) (y:real^1)  =
+    csqrt ( (average_ac (g:real^1->complex) (s:real^1->bool)) pow 2 + (rms_ripple
+ (g:real^1->complex) (x:real^1) (y:real^1)) pow 2) 
+ `;;
+
+ 
+(*-Definition 3.17-*)
+new_definition `power_ac
+  (g:real^1->complex) (s:real^1->bool) (r:real) =
+   (( rms_ac1 g s) pow 2) * Cx(r) 
+ `;;
+
+ 
+ (***************Theorem 3.6*************************)
+ 
+g `! (c1:real) (c2:real) (cnst1:real) (cnst2:real) (Tp:real) (t_on:real)  (s1:complex) (s2:complex) (t:real^1).(
+((&0 < t_on) /\ (t_on < Tp) /\ ((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2  (lift (Tp))) = ((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 
+                   (lift (&0)))))/\
+		    ~((Cx (&1) - cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on))) = Cx(&0)) /\
+((!t. (\t.  solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 
+                   t) continuous at t )) ) ==>
+		   ((ripple (\x:real^1.  solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (x)) (lift (t_on)) (lift (&0)) =  ((Cx cnst1 *
+  (cexp (s2 * Cx (Tp - t_on)) - cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on))) +
+  Cx cnst2 * (Cx (&1) - cexp (s2 * Cx (Tp - t_on)))) /
+ (Cx (&1) - cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on))) *
+ (cexp (s1 * Cx t_on) - Cx (&1)) +
+ Cx cnst1 * (Cx (&1) - cexp (s1 * Cx t_on))) )))
+		   `;;
+		   e (REPEAT STRIP_TAC);;
+		   e (ONCE_REWRITE_TAC [ripple]);;
+		   		   e (ONCE_REWRITE_TAC [ETA_AX]);;
+
+e (SUBGOAL_THEN `((solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift t_on))
+  )= ((Cx(c1) * cexp (s1 * Cx(t_on)) +  Cx(cnst1)) * Cx(&1 / &2)  + ((Cx(c2) +  Cx(cnst2)) * Cx (&1 / &2)))` ASSUME_TAC);;
+e (SIMP_TAC [solution_shifted101; linear_sol_combin; cexp_list]);;
+e (ASM_SIMP_TAC [LENGTH]);;
+e (ASM_SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [VSUM_CLAUSES_NUMSEG]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD;TL]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [TWO]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [ONE]);;
+e (SIMP_TAC [EL; HD]);;
+e (SIMP_TAC [TL; HD]);;
+e (SIMP_TAC [ARITH]);;
+e (SIMP_TAC [single_switch_status_h_10; LIFT_DROP]);;
+e (ASM_SIMP_TAC [REAL_ARITH `t_on - t_on = &0`]);;
+e (ASM_SIMP_TAC [REAL_ARITH `(&0 < &0) = (F)`]);;
+e (SIMP_TAC [DROP_SUB; LIFT_DROP]);;
+e (SIMP_TAC [REAL_ARITH `(t_on - t_on) = &0`]);;
+e (SIMP_TAC [REAL_ARITH `(&1 - &1 / &2) = (&1 / &2)`]);;
+e (SIMP_TAC [COMPLEX_RING `(a * Cx(&0)) = (Cx(&0))`]);;
+e (SIMP_TAC [COMPLEX_RING `( Cx (&0) + Cx (&0)) = (Cx(&0))`]);;
+e (SIMP_TAC [CEXP_0]);;
+e (SIMP_TAC [COMPLEX_RING `(a +  Cx(&0)) = (a)`]);;
+e (SIMP_TAC [COMPLEX_RING `(a * Cx(&1)) = (a)`]);;
+
+
+e (SUBGOAL_THEN ` Cx c1 = (solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0))) - Cx cnst1` ASSUME_TAC);;
+e (SUBGOAL_THEN `solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) =
+             Cx c1 + Cx cnst1 ` ASSUME_TAC);;
+	     e (MATCH_MP_TAC I_AT_0);;
+	     e (ASM_SIMP_TAC []);;
+	     e (ASM_SIMP_TAC [COMPLEX_RING `((a:complex) = b - c) = (b = a + c)`]);;
+
+e (SUBGOAL_THEN `Cx c2 =
+             (solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) -
+              Cx cnst1) *
+             cexp (s1 * Cx t_on) +
+             Cx cnst1 - Cx cnst2 ` ASSUME_TAC);;
+	     e (MATCH_MP_TAC SECOND_COEFFICIENT_SOLUTION);;
+	     e (ASM_SIMP_TAC []);;
+
+e (ASM_REWRITE_TAC []);;
+e (SIMP_TAC [COMPLEX_RING `((((a:complex) - b) *c + d) * Cx (&1 / &2) + (((a - b) *c + d - e ) + e) * Cx (&1 / &2)) = ((a - b) *c + d)`]);;
+
+e (SIMP_TAC [COMPLEX_RING `((((a:complex) - b) *c + b) - a)  =
+((a * c - a) + (b - b * c))`]);;
+
+e (SIMP_TAC [COMPLEX_RING `
+((a * c - a) + (b - b * c)) = (a * (c - Cx(&1)) + b * (Cx(&1) - c))`]);;
+
+
+
+
+
+
+e (SUBGOAL_THEN `(solution_shifted101 c1 c2 t_on s1 s2 cnst1 cnst2 (lift (&0)) =
+             (Cx cnst1 *
+              (cexp (s2 * Cx (Tp - t_on)) -
+               cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on))) +
+              Cx cnst2 * (Cx (&1) - cexp (s2 * Cx (Tp - t_on)))) /
+             (Cx (&1) - cexp (s1 * Cx t_on + s2 * Cx (Tp - t_on)))) ` ASSUME_TAC);;
+	     e (MATCH_MP_TAC STEADY_STATE_CURRENT);;
+
+e (ASM_SIMP_TAC []);;
+e (ASM_REWRITE_TAC []);;
+
+let I_RIPPLE_CURRENT = top_thm();;
+
+
+   (*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.**.*.*.*.*.*.*.*.*.*.*.*.*.*.*)
+   (*.*.*.*.*.*.*Non-Ideal power converter components*.*..*.*.*.*.*.*.*.*.*.*.*.*)
+   (*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.**.*.*.*.*.*.*.*.*.*.*.*.*.*.*)
+
+
+   (*-Definition 3.1-*)
+   let resistor_voltage= new_definition 
+		`resistor_voltage (R:real) (i:real^1->complex)= (\t. i t * Cx(R))`;;
+   (*-Resistor current-*)
+   let resistor_current= new_definition 
+		`resistor_current (R:real)(v:real^1->complex)=(\t. v t *(Cx(&1/R)))`;;
+   (*-Definition 3.2-*)
+   let inductor_voltage = new_definition
+	 `inductor_voltage (L:real)(i:real^1->complex) =
+				     (\t. Cx(L) * (vector_derivative i (at t)))`;;
+   (*-Inductor current-*)
+   let inductor_current = new_definition
+	 `inductor_current (v:real^1->complex)(L:real)(Vo:complex) = 
+       (\t. Vo + (Cx(&1/L))* integral (interval[lift(&0),t]) v)`;;
+   (*-Capacitor current-*)
+   let capacitor_current = new_definition
+	 `capacitor_current (C:real)(v:real^1->complex) =
+				     (\t. Cx(C) * (vector_derivative v (at t)))`;;
+   (*-Definition 3.3-*)
+   let capacitor_voltage = new_definition
+	 `capacitor_voltage (i:real^1->complex)(C:real)(io:complex) = 
+      (\t. io + (Cx(&1/C))* integral (interval[lift(&0),t]) i)`;;
+
+ (*-Definition 3.4-*)
+
+
+ let non_ideal_inductor_voltage = new_definition
+	 `non_ideal_inductor_voltage (L:real) (R:real) (i:real^1->complex) (t:real^1)=
+				     ( (\t. ( inductor_voltage L i) t +
+				      (( resistor_voltage (R:real) (i:real^1->real^2) ) t)))`;;
+
+   (*-Definition 3.5-*)
+   let non_ideal_inductor_current1234 = new_definition
+	 `non_ideal_inductor_current1234 (v:real^1->complex)(L:real)(Vo:complex) (R:real) = 
+       ( (\t. (inductor_current v L Vo ) t +
+				      (( resistor_current (R:real) (v:real^1->real^2) ) t)) )`;;
+
+   (*-Definition 3.6-*)
+   let non_ideal_capacitor_voltage1234 = new_definition
+	 `non_ideal_capacitor_voltage1234 (i:real^1->complex) (C:real) (io:complex) (R:real) = 
+      (\t. ( capacitor_voltage i C io) t + (resistor_voltage R i) t )`;;
+
+
+   (*-Definition 3.7-*)
+   let non_ideal_capacitor_current1234 = new_definition
+	 `non_ideal_capacitor_currentq1234 (C:real)(v:real^1->complex) (R:real) =
+				     (\t. (capacitor_current (C:real)(v:real^1->complex)) t + (resistor_current R v) t)`;;
+   
+  (*-Definition 3.8-*)
+let mosfet_conduc_model1 = new_definition
+	 `mosfet_conduc_model1 (i:real^1->complex) (Ron:real) = 
+      ((resistor_voltage Ron i) )`;;
+
+
+  (*-Definition 3.9-*)
+  let mosfet_conduc_current = new_definition
+	 `mosfet_conduc_current (Ron:real) (v:real^1->real^2) = 
+      ((resistor_current (Ron:real) (v:real^1->real^2) ) )`;;
+
+  (*-Definition 3.10-*)
+  let diode_forward_model1 = new_definition
+	 `diode_forward_model1 (vd:real) (i:real^1->complex) (Rd:real) = 
+      (\t. Cx(vd) + (resistor_voltage Rd i) t )`;;
+
+
+ (*-Definition 4.1-*)
+ 
+
+let non_ideal_buck_ckt_structure_h = 
+   new_definition ` non_ideal_buck_ckt_structure_h
+   (L:real) (C:real) (Rl:real) (Rc:real) (Ron:real) (Rd:real)
+   (Vs:real)	(Vsw:real^1->real^2) (vd:real) (Il:real^1->real^2)
+   (Ic:real^1->real^2) (io:real^2)
+	(t_on:real) (t:real^1) =
+(!t. (&0 <= drop(t)) /\ ~((drop t) = t_on) ==>
+	( 
+	( kvl[Vsw; (non_ideal_inductor_voltage12345 (L:real) (Rl:real)
+	(Il:real^1->real^2));
+	(non_ideal_capacitor_voltage1234 (Ic:real^1->real^2) (C:real)
+         (io:real^2) (Rc:real))]  t) /\
+	 
+	 (Vsw = (\t. switch_volt_superposition ([((\t. --Cx(Vs) +
+	 (mosfet_conduc_model1 (Il:real^1->real^2) (Ron:real)) t )) ;
+	 (diode_forward_model1 (vd:real) (Il:real^1->real^2)
+	 (Rd:real) )]) ([((&1 - single_switch_status_h ((drop (t))
+	 - t_on)));
+	 (single_switch_status_h ((drop (t)) - t_on))]) 
+	     t)) )
+	     )
+	 `;;
+
+(*****Theorem 4.1******)
+ g ` 
+   ! (L:real) (C:real) (Rl:real) (Rc:real) (Ron:real) (Rd:real)
+   (Vs:real)	(Vsw:real^1->real^2) (vd:real) (Il:real^1->real^2)  (Ic:real^1->real^2) (io:real^2)
+	(t_on:real)   (t:real^1)
+	     (Tp:real).
+   (( ~(C = &0) /\
+    (&0 < t_on)  /\ 
+   (t_on < Tp)  /\ 
+   (!t. differentiable_higher_derivative 1 Il t)  /\
+   (t IN interval (lift(&0), lift(Tp)) ) /\
+   (~ ((drop t) = t_on)) /\
+   (!t:real^1. Il continuous_on interval [lift(&0), t]) /\
+   ( non_ideal_buck_ckt_structure_h
+   (L:real) (C:real) (Rl:real) (Rc:real) (Ron:real) (Rd:real)
+   (Vs:real)	(Vsw:real^1->real^2) (vd:real) (Il:real^1->real^2)  (Ic:real^1->real^2) (io:real^2)
+	(t_on:real) (t:real^1) ))
+   ==> (nideal_diff_equations a1 b1 a2 b2 y t_on t ))`;;
+
+
+    e (REPEAT GEN_TAC);;
+    e (REPEAT STRIP_TAC);;
+    e (UNDISCH_TAC `non_ideal_buck_ckt_structure_h12345678900 L C Rl Rc Ron Rd Vs Vsw vd Il
+      Ic
+      io
+      t_on
+      t`);;
+    e (SIMP_TAC [non_ideal_buck_ckt_structure_h12345678900]);;
+    e (SIMP_TAC [kvl]);;
+    e (SIMP_TAC [LENGTH]);;
+    e (SIMP_TAC [GSYM ONE]);;
+    e (SIMP_TAC [GSYM TWO]);;
+    e (SIMP_TAC [ADD1]);;
+    e (SIMP_TAC [ARITH]);;
+    e (SIMP_TAC [TWO]);;
+    e (REWRITE_TAC[VSUM_CLAUSES_NUMSEG;ARITH]);;
+    e (REWRITE_TAC[ONE;VSUM_CLAUSES_NUMSEG;]);;
+    e (REWRITE_TAC[GSYM ONE]);;
+    e (SIMP_TAC [ARITH]);;
+    e (SIMP_TAC [EL;HD;ONE;EL;TL;HD;TWO;EL;ONE;EL;TL;HD]);;
+   e (UNDISCH_TAC `~(drop t = t_on)`);;
+   e (ASM_SIMP_TAC [REAL_NOT_EQ]);;
+   e (REPEAT STRIP_TAC);;
+
+ e (SUBGOAL_THEN `(!t. &0 <= drop t /\ (drop t < t_on \/ t_on < drop t)
+          ==> (Vsw t + non_ideal_inductor_voltage12345 L Rl Il t) +
+              non_ideal_capacitor_voltage1234 Ic C io Rc t =
+              Cx (&0) /\
+              Vsw =
+              (\t. switch_volt_superposition
+                   [\t. --Cx Vs + mosfet_conduc_model1 Il Ron t;
+                    diode_forward_model1 vd Il Rd]
+                   [&(SUC 0) - single_switch_status_h (drop t - t_on);
+                    single_switch_status_h (drop t - t_on)]
+                   t)) = ((!t. &0 <= drop t /\ (drop t < t_on \/ t_on < drop t)
+	     ==> (Vsw t + non_ideal_inductor_voltage12345 L Rl Il t) +
+              non_ideal_capacitor_voltage1234 Ic C io Rc t =
+              Cx (&0)) /\ (!t. &0 <= drop t /\ (drop t < t_on \/ t_on < drop t) ==>
+		 Vsw =
+              (\t. switch_volt_superposition
+                   [\t. --Cx Vs + mosfet_conduc_model1 Il Ron t;
+                    diode_forward_model1 vd Il Rd]
+                   [&(SUC 0) - single_switch_status_h (drop t - t_on);
+                    single_switch_status_h (drop t - t_on)]
+                   t)))` ASSUME_TAC);;
+
+   e (ASM_MESON_TAC []);;
+   e (UNDISCH_TAC `!t. &0 <= drop t /\ (drop t < t_on \/ t_on < drop t)
+          ==> (Vsw t + non_ideal_inductor_voltage12345 L Rl Il t) +
+              non_ideal_capacitor_voltage1234 Ic C io Rc t =
+              Cx (&0) /\
+              Vsw =
+              (\t. switch_volt_superposition
+                   [\t. --Cx Vs + mosfet_conduc_model1 Il Ron t;
+                    diode_forward_model1 vd Il Rd]
+                   [&(SUC 0) - single_switch_status_h (drop t - t_on);
+                    single_switch_status_h (drop t - t_on)]
+                   t)`);;
+   e (ASM_REWRITE_TAC []);;
+
+   e (POP_ASSUM (K ALL_TAC));;
+   e (STRIP_TAC);;
+   e (UNDISCH_TAC `!t. &0 <= drop t /\ (drop t < t_on \/ t_on < drop t)
+          ==> (Vsw t + non_ideal_inductor_voltage12345 L Rl Il t) +
+              non_ideal_capacitor_voltage1234 Ic C io Rc t =
+              Cx (&0)`);;
+   e (REWRITE_TAC [non_ideal_inductor_voltage12345; non_ideal_capacitor_voltage1234]);;
+   e (ONCE_ASM_REWRITE_TAC []);;
